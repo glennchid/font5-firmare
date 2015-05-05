@@ -415,7 +415,7 @@ BUFGMUX_CTRL BUFGMUX_CTRL_inst (
 //Instantiate IBUFDS and IODELAYs for the incoming DATA, DRDY, and ADC clocks
 
 `include "DRDY_IBUFDS_inst.v"
-`include "DRDY_IDELAY_INST.v"
+`include "DRDY_IDELAY_inst.v"
 
 	IODELAY # (
 		.DELAY_SRC("DATAIN"),
