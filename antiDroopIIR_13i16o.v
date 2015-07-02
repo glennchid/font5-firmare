@@ -6,7 +6,6 @@ module antiDroopIIR (
 	input accClr_en,
 	input oflowClr,
 	output reg oflowDetect = 1'd0,
-	//output reg signed [12:0] dout = 13'sd0);
 	output reg signed [15:0] dout = 16'sd0);
 
 parameter IIR_scale = 15; // define the scaling factor for the IIR multiplier, eg for 0.002 (din = 63, IIR_scale = 15).
@@ -22,30 +21,22 @@ reg signed [19:0] multreg = 20'sd0;
 (* equivalent_register_removal = "no" *) reg trig_a = 1'b0, trig_b = 1'b0;
 wire trig_edge = trig_a & ~trig_b;
 //reg trig_edge = 1'b0;
-//(* shreg_extract = "no", keep = "yes" *) reg signed [6:0] tapWeight_a = 7'sd0;
-(* shreg_extract = "no" *) reg signed [6:0] tapWeight_a = 7'sd0;
-(* shreg_extract = "no" *) reg signed [6:0] tapWeight_b = 7'sd0;
-//(* shreg_extract = "no" *) reg signed [6:0] tapWeight_a = 7'sd0, tapWeight_b = 7'sd0;
-//(* shreg_extract = "no" *) reg signed [6:0] tapWeight_c = 7'sd0;// tapWeight_d = 'sd0;
+reg signed [6:0] tapWeight_a = 7'sd0, tapWeight_b = 7'sd0;
 
 always @(posedge clk) begin
 	//trig_edge <= trig_a & ~trig_b;
 	tapWeight_a <= tapWeight;
 	tapWeight_b <= tapWeight_a;
-	//tapWeight_c <= tapWeight_b;
-	//tapWeight_d <= tapWeight_c;
-
 	trig_a <= trig;
 	trig_b <= trig_a;
 	din_del <= din;
 	`ifdef ADDPIPEREG
 		din_del_b <= din_del;
 		multreg <= din_del*tapWeight_b;
-		//dout <= din_del_b + tap[IIR_scale+12:IIR_scale];
+		dout <= {din_del_b, 3'b000} + tap[IIR_scale+12:IIR_scale-3];
 	`else
 		multreg <= din*tapWeight_b;
 		dout <= {din_del, 3'b000} + tap[IIR_scale+12:IIR_scale-3];
-		//dout <= din_del + tap[IIR_scale+12:IIR_scale];
 	`endif
 	if (trig_edge && accClr_en) tap <= 48'd0;
 	else tap <= multreg + tap;

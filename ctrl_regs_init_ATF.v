@@ -23,6 +23,7 @@ initial begin
 		ctrl_regs[121] = 7'b1111110; // [bottom five bits of channel select (ones hot), top two bits of eight-bit decimal "164"
 		ctrl_regs[122] = 7'b1001000; // [bottom six bits of above, trigSync_ext (ie. ring clock) enable]
 		ctrl_regs[123] = 7'd1; 			// Run mode
+		ctrl_regs[124] = 7'b0001101; // diodeGating = 1; oflowMode = 2(saturate); useDiode = 1;
 		
 		
 		ctrl_regs_mem[39]=7'b1011001; //{start proc[6:0], use strobes}  = 44, 1
@@ -37,7 +38,8 @@ initial begin
 		ctrl_regs_mem[120] = 7'b1001111; // [bottom three bits of above,  top four bits of channel select (ones hot)]
 		ctrl_regs_mem[121] = 7'b1111110; // [bottom five bits of channel select (ones hot), top two bits of eight-bit decimal "164"
 		ctrl_regs_mem[122] = 7'b1001000; // [bottom six bits of above, trigSync_ext (ie. ring clock) enable]
-		ctrl_regs_mem[123] = 7'd1; 			// Run mode
+		ctrl_regs_mem[123] = 7'd1; 			// Run mode#
+		ctrl_regs_mem[124] = 7'b0001101; // diodeGating = 1; oflowMode = 2(saturate); useDiode = 1;
 	`else
 		ctrl_regs[96] = 7'd8; // Baud_rate 460.8 kbps
 		ctrl_regs[110] = 7'd4; ///DigInA threshold
@@ -47,6 +49,7 @@ initial begin
 		ctrl_regs[121] = 7'b1111110; // [bottom five bits of channel select (ones hot), top two bits of eight-bit decimal "164"
 		ctrl_regs[122] = 7'b1001001; // [bottom six bits of above, trigSync_ext (ie. ring clock) enable]
 		ctrl_regs[123] = 7'd1; 			// Run mode
+		ctrl_regs[124] = 7'b0001101; // diodeGating = 1; oflowMode = 2(saturate); useDiode = 1;
 		
 		ctrl_regs_mem[96] = 7'd8; // Baud_rate 460.8 kbps
 		ctrl_regs_mem[110]=3'd4; ///DigInA threshold
@@ -56,6 +59,7 @@ initial begin
 		ctrl_regs_mem[121] = 7'b1111110; // [bottom five bits of channel select (ones hot), top two bits of eight-bit decimal "164"
 		ctrl_regs_mem[122] = 7'b1001001; // [bottom six bits of above, trigSync_ext (ie. ring clock) enable]
 		ctrl_regs_mem[123] = 7'd1; 			// Run mode
+		ctrl_regs_mem[124] = 7'b0001101; // diodeGating = 1; oflowMode = 2(saturate); useDiode = 1;
 	`endif
 	end
 	

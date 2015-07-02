@@ -111,9 +111,10 @@ module FONT5_base(
     );
 
 //parameters and defintions
+parameter DSP_WIDTH = 16;
 //`include "font5_base_top.vh"
 `include "definitions.vh"
-`define INCLUDE_TESTBENCH
+//`define INCLUDE_TESTBENCH
 
 //`define DOUBLE_CONTROL_REGS
 
@@ -121,7 +122,7 @@ module FONT5_base(
 
 //`define DISABLE_AUXOUTS;
 
-`define LOAD_ATF_DEFAULTS
+//`define LOAD_ATF_DEFAULTS
 //`define LOAD_CTF_DEFAULTS
 
 
@@ -582,10 +583,11 @@ adc_block p1_adc_block(
 parameter ch1_bitflip = 13'b1011010000101;
 parameter ch2_bitflip = 13'b0101110001000;
 parameter ch3_bitflip = 13'b0001011110100;
+//(* shreg_extract = "no" *) reg [4:0] bank1_sr_tap_a = 5'd0, bank1_sr_tap_b = 5'd0;//, bank1_sr_tap_c = 5'd0;
 
-dataRegConvert #(13, ch1_bitflip ^ -13'sd4096) ch1_dataRegConvert(clk357, ch1_data_in_del, p1_xdif_data);
-dataRegConvert #(13, ch2_bitflip ^ -13'sd4096) ch2_dataRegConvert(clk357, ch2_data_in_del, p1_ydif_data);
-dataRegConvert #(13, ch3_bitflip ^ -13'sd4096) ch3_dataRegConvert(clk357, ch3_data_in_del, p1_sum_data);
+dataRegConvert #(13, ch1_bitflip ^ -13'sd4096) ch1_dataRegConvert(clk357, ch1_data_in_del, bank1_sr_tap, p1_xdif_data);
+dataRegConvert #(13, ch2_bitflip ^ -13'sd4096) ch2_dataRegConvert(clk357, ch2_data_in_del, bank1_sr_tap, p1_ydif_data);
+dataRegConvert #(13, ch3_bitflip ^ -13'sd4096) ch3_dataRegConvert(clk357, ch3_data_in_del, bank1_sr_tap, p1_sum_data);
 //dataRegConvert #(13) ch1_dataRegConvert(clk357, ch1_data_in_del, p1_xdif_data);
 //dataRegConvert #(13) ch2_dataRegConvert(clk357, ch2_data_in_del, p1_ydif_data);
 //dataRegConvert #(13) ch3_dataRegConvert(clk357, ch3_data_in_del, p1_sum_data);
@@ -597,16 +599,22 @@ dataRegConvert #(13, ch3_bitflip ^ -13'sd4096) ch3_dataRegConvert(clk357, ch3_da
 
 //Insert Droop Correction Filter 
 
-wire signed [12:0] p1_xdif_IIR_out, p1_xdif_RAM_data;
-wire signed [12:0] p1_ydif_IIR_out, p1_ydif_RAM_data;
-wire signed [12:0] p1_sum_IIR_out, p1_sum_RAM_data;
+wire signed [DSP_WIDTH-1:0] p1_xdif_IIR_out, p1_xdif_RAM_data;
+wire signed [DSP_WIDTH-1:0] p1_ydif_IIR_out, p1_ydif_RAM_data;
+wire signed [DSP_WIDTH-1:0] p1_sum_IIR_out, p1_sum_RAM_data;
+wire ch1_oflowDet, ch2_oflowDet, ch3_oflowDet;
+
 
 //synchronise signals coming in from uart
+//(* shreg_extract = "no" *) reg [10:0] IIRbypass_a = 11'd0, IIRbypass_b = 11'd0;
 reg [10:0] IIRbypass_a = 11'd0, IIRbypass_b = 11'd0;
 //reg [12:0] p1_xdif_data_reg, p1_ydif_data_reg, p1_sum_data_reg;
 //reg [12:0] p1_xdif_corr, p1_ydif_corr, p1_sum_corr;
 
 always @(posedge clk357) begin
+	//bank1_sr_tap_a <= bank1_sr_tap;
+	//bank1_sr_tap_b <= bank1_sr_tap_a;
+	//bank1_sr_tap_c <= bank1_sr_tap_b;
 	IIRbypass_a <= IIRbypass;
 	IIRbypass_b <= IIRbypass_a;
 //	p1_xdif_data_reg <= p1_xdif_data;
@@ -625,7 +633,7 @@ antiDroopIIR #(17) antiDroopIIR_ch1(
 	.tapWeight(ch1_IIRtapWeight),
 	.accClr_en(1'b1),
 	.oflowClr(),
-	.oflowDetect(),
+	.oflowDetect(ch1_oflowDet),
 	.dout(p1_xdif_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch2(
@@ -636,7 +644,7 @@ antiDroopIIR #(17) antiDroopIIR_ch2(
 	.tapWeight(ch2_IIRtapWeight),
 	.accClr_en(1'b1),
 	.oflowClr(),
-	.oflowDetect(),
+	.oflowDetect(ch2_oflowDet),
 	.dout(p1_ydif_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch3(
@@ -647,18 +655,21 @@ antiDroopIIR #(17) antiDroopIIR_ch3(
 	.tapWeight(ch3_IIRtapWeight),
 	.accClr_en(1'b1),
 	.oflowClr(),
-	.oflowDetect(),
+	.oflowDetect(ch3_oflowDet),
 	.dout(p1_sum_IIR_out)
 );
-
-
+reg bank1_oflowDet = 1'b0;
+always @(posedge clk357) bank1_oflowDet <= (ch1_oflowDet | ch2_oflowDet | ch3_oflowDet);
 
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data_fix : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data_fix : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data_fix : p1_sum_IIR_out;
-assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data : p1_xdif_IIR_out;
-assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data : p1_ydif_IIR_out;
-assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data : p1_sum_IIR_out;
+assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? {p1_xdif_data, 3'b000} : p1_xdif_IIR_out;
+assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? {p1_ydif_data, 3'b000} : p1_ydif_IIR_out;
+assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? {p1_sum_data, 3'b000} : p1_sum_IIR_out;
+//assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data : p1_xdif_IIR_out;
+//assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data : p1_ydif_IIR_out;
+//assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data : p1_sum_IIR_out;
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data : p1_xdif_IIR_out + p1_xdif_data_reg;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data : p1_ydif_IIR_out + p1_ydif_data_reg;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data : p1_sum_IIR_out + p1_sum_data_reg;
@@ -691,7 +702,7 @@ DAQ_RAM daq_ram_p1_xdif(
 	.tx_complete(daq_p1_xdif_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p1_store_strb),
-	.wr_data({p1_xdif_RAM_data[12], p1_xdif_RAM_data})
+	.wr_data({p1_xdif_RAM_data[DSP_WIDTH-1], p1_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 reg 			daq_p1_ydif_tx_en = 1'b0;
@@ -709,7 +720,7 @@ DAQ_RAM daq_ram_p1_ydif(
 	.tx_complete(daq_p1_ydif_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p1_store_strb),
-	.wr_data({p1_ydif_RAM_data[12], p1_ydif_RAM_data})
+	.wr_data({p1_ydif_RAM_data[DSP_WIDTH-1], p1_ydif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 reg 			daq_p1_sum_tx_en = 1'b0;
@@ -727,7 +738,7 @@ DAQ_RAM daq_ram_p1_sum(
 	.tx_complete(daq_p1_sum_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p1_store_strb),
-	.wr_data({p1_sum_RAM_data[12], p1_sum_RAM_data})
+	.wr_data({p1_sum_RAM_data[DSP_WIDTH-1], p1_sum_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 
@@ -788,19 +799,22 @@ adc_block p2_adc_block(
 parameter ch4_bitflip = 13'b0111100000000;
 parameter ch5_bitflip = 13'b0100110011010;
 parameter ch6_bitflip = 13'b1111111010110;
+//(* shreg_extract = "no" *) reg [4:0] bank2_sr_tap_a = 5'd0, bank2_sr_tap_b = 5'd0;//, bank2_sr_tap_c = 5'd0;
 
-dataRegConvert #(13, ch4_bitflip ^ -13'sd4096) ch4_dataRegConvert(clk357, ch4_data_in_del, p2_xdif_data);
-dataRegConvert #(13, ch5_bitflip ^ -13'sd4096) ch5_dataRegConvert(clk357, ch5_data_in_del, p2_ydif_data);
-dataRegConvert #(13, ch6_bitflip ^ -13'sd4096) ch6_dataRegConvert(clk357, ch6_data_in_del, p2_sum_data);
+dataRegConvert #(13, ch4_bitflip ^ -13'sd4096) ch4_dataRegConvert(clk357, ch4_data_in_del, bank2_sr_tap, p2_xdif_data);
+dataRegConvert #(13, ch5_bitflip ^ -13'sd4096) ch5_dataRegConvert(clk357, ch5_data_in_del, bank2_sr_tap, p2_ydif_data);
+dataRegConvert #(13, ch6_bitflip ^ -13'sd4096) ch6_dataRegConvert(clk357, ch6_data_in_del, bank2_sr_tap, p2_sum_data);
 
 // Flip the signals which were incorrect polarity at LVDS inputs
 //`include "p2_adcblock_flip_signals.v"
 
 //Insert P2 Droop Correction Filters 
 
-wire signed [12:0] p2_xdif_IIR_out, p2_xdif_RAM_data;
-wire signed [12:0] p2_ydif_IIR_out, p2_ydif_RAM_data;
-wire signed [12:0] p2_sum_IIR_out, p2_sum_RAM_data;
+wire signed [DSP_WIDTH-1:0] p2_xdif_IIR_out, p2_xdif_RAM_data;
+wire signed [DSP_WIDTH-1:0] p2_ydif_IIR_out, p2_ydif_RAM_data;
+wire signed [DSP_WIDTH-1:0] p2_sum_IIR_out, p2_sum_RAM_data;
+wire ch4_oflowDet, ch5_oflowDet, ch6_oflowDet;
+
 
 antiDroopIIR #(17) antiDroopIIR_ch4(
 	.clk(clk357),
@@ -810,7 +824,7 @@ antiDroopIIR #(17) antiDroopIIR_ch4(
 	.tapWeight(ch4_IIRtapWeight),
 	.accClr_en(1'b1),
 	.oflowClr(),
-	.oflowDetect(),
+	.oflowDetect(ch4_oflowDet),
 	.dout(p2_xdif_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch5(
@@ -821,7 +835,7 @@ antiDroopIIR #(17) antiDroopIIR_ch5(
 	.tapWeight(ch5_IIRtapWeight),
 	.accClr_en(1'b1),
 	.oflowClr(),
-	.oflowDetect(),
+	.oflowDetect(ch5_oflowDet),
 	.dout(p2_ydif_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch6(
@@ -832,18 +846,27 @@ antiDroopIIR #(17) antiDroopIIR_ch6(
 	.tapWeight(ch6_IIRtapWeight),
 	.accClr_en(1'b1),
 	.oflowClr(),
-	.oflowDetect(),
+	.oflowDetect(ch6_oflowDet),
 	.dout(p2_sum_IIR_out)
 );
 
-
+reg bank2_oflowDet = 1'b0;
+always @(posedge clk357) begin
+//bank2_sr_tap_a <= bank2_sr_tap;
+//bank2_sr_tap_b <= bank2_sr_tap_a;
+//bank2_sr_tap_c <= bank2_sr_tap_b;
+bank2_oflowDet <= (ch4_oflowDet | ch5_oflowDet | ch6_oflowDet);
+end
 
 //assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data_fix : p2_xdif_IIR_out;
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data_fix : p2_ydif_IIR_out;
 //assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data_fix : p2_sum_IIR_out;
-assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data : p2_xdif_IIR_out;
-assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data : p2_ydif_IIR_out;
-assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data : p2_sum_IIR_out;
+assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? {p2_xdif_data, 3'b000} : p2_xdif_IIR_out;
+assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out;
+assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? {p2_sum_data, 3'b000} : p2_sum_IIR_out;
+//assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data : p2_xdif_IIR_out;
+//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data : p2_ydif_IIR_out;
+//assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data : p2_sum_IIR_out;
 
 // %%%%%%%%%%%%%%%%%%   P2 ADC GROUP DAQ_RAM MODULES   %%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -867,7 +890,7 @@ DAQ_RAM daq_ram_p2_xdif(
 	.tx_complete(daq_p2_xdif_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p2_store_strb),
-	.wr_data({p2_xdif_RAM_data[12], p2_xdif_RAM_data})
+	.wr_data({p2_xdif_RAM_data[DSP_WIDTH-1], p2_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 reg 			daq_p2_ydif_tx_en = 1'b0;
@@ -885,7 +908,7 @@ DAQ_RAM daq_ram_p2_ydif(
 	.tx_complete(daq_p2_ydif_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p2_store_strb),
-	.wr_data({p2_ydif_RAM_data[12], p2_ydif_RAM_data})
+	.wr_data({p2_ydif_RAM_data[DSP_WIDTH-1], p2_ydif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 reg 			daq_p2_sum_tx_en = 1'b0;
@@ -903,7 +926,7 @@ DAQ_RAM daq_ram_p2_sum(
 	.tx_complete(daq_p2_sum_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p2_store_strb),
-	.wr_data({p2_sum_RAM_data[12], p2_sum_RAM_data})
+	.wr_data({p2_sum_RAM_data[DSP_WIDTH-1], p2_sum_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 
@@ -964,19 +987,22 @@ adc_block p3_adc_block(
 parameter ch7_bitflip = 13'b0001101000010;
 parameter ch8_bitflip = 13'b1000011100001;
 parameter ch9_bitflip = 13'b0001001111010;
+//(* shreg_extract = "no" *) reg [4:0] bank3_sr_tap_a = 5'd0, bank3_sr_tap_b = 5'd0;//, bank3_sr_tap_c = 5'd0;
 
-dataRegConvert #(13, ch7_bitflip ^ -13'sd4096) ch7_dataRegConvert(clk357, ch7_data_in_del, p3_xdif_data);
-dataRegConvert #(13, ch8_bitflip ^ -13'sd4096) ch8_dataRegConvert(clk357, ch8_data_in_del, p3_ydif_data);
-dataRegConvert #(13, ch9_bitflip ^ -13'sd4096) ch9_dataRegConvert(clk357, ch9_data_in_del, p3_sum_data);
+dataRegConvert #(13, ch7_bitflip ^ -13'sd4096) ch7_dataRegConvert(clk357, ch7_data_in_del, bank3_sr_tap, p3_xdif_data);
+dataRegConvert #(13, ch8_bitflip ^ -13'sd4096) ch8_dataRegConvert(clk357, ch8_data_in_del, bank3_sr_tap, p3_ydif_data);
+dataRegConvert #(13, ch9_bitflip ^ -13'sd4096) ch9_dataRegConvert(clk357, ch9_data_in_del, bank3_sr_tap, p3_sum_data);
 
 // Flip the signals which were incorrect polarity at LVDS inputs
 //`include "p3_adcblock_flip_signals.v"
 
 //Insert P3 Droop Correction Filters 
 
-wire signed [12:0] p3_xdif_IIR_out, p3_xdif_RAM_data;
-wire signed [12:0] p3_ydif_IIR_out, p3_ydif_RAM_data;
-wire signed [12:0] p3_sum_IIR_out, p3_sum_RAM_data;
+wire signed [DSP_WIDTH-1:0] p3_xdif_IIR_out, p3_xdif_RAM_data;
+wire signed [DSP_WIDTH-1:0] p3_ydif_IIR_out, p3_ydif_RAM_data;
+wire signed [DSP_WIDTH-1:0] p3_sum_IIR_out, p3_sum_RAM_data;
+wire ch7_oflowDet, ch8_oflowDet, ch9_oflowDet;
+
 
 antiDroopIIR #(17) antiDroopIIR_ch7(
 	.clk(clk357),
@@ -986,7 +1012,7 @@ antiDroopIIR #(17) antiDroopIIR_ch7(
 	.tapWeight(ch7_IIRtapWeight),
 	.accClr_en(1'b1),
 	.oflowClr(),
-	.oflowDetect(),
+	.oflowDetect(ch7_oflowDet),
 	.dout(p3_xdif_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch8(
@@ -997,7 +1023,7 @@ antiDroopIIR #(17) antiDroopIIR_ch8(
 	.tapWeight(ch8_IIRtapWeight),
 	.accClr_en(1'b1),
 	.oflowClr(),
-	.oflowDetect(),
+	.oflowDetect(ch8_oflowDet),
 	.dout(p3_ydif_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch9(
@@ -1008,18 +1034,27 @@ antiDroopIIR #(17) antiDroopIIR_ch9(
 	.tapWeight(ch9_IIRtapWeight),
 	.accClr_en(1'b1),
 	.oflowClr(),
-	.oflowDetect(),
+	.oflowDetect(ch9_oflowDet),
 	.dout(p3_sum_IIR_out)
 );
 
-
+reg bank3_oflowDet = 1'b0;
+always @(posedge clk357) begin
+//bank3_sr_tap_a <= bank3_sr_tap;
+//bank3_sr_tap_b <= bank3_sr_tap_a;
+//bank3_sr_tap_c <= bank3_sr_tap_b;
+bank3_oflowDet <= (ch7_oflowDet | ch8_oflowDet | ch9_oflowDet);
+end
 
 //assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data_fix : p3_xdif_IIR_out;
 //assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data_fix : p3_ydif_IIR_out;
 //assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data_fix : p3_sum_IIR_out;
-assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data : p3_xdif_IIR_out;
-assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data : p3_ydif_IIR_out;
-assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data : p3_sum_IIR_out;
+assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? {p3_xdif_data, 3'b000} : p3_xdif_IIR_out;
+assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? {p3_ydif_data, 3'b000} : p3_ydif_IIR_out;
+assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? {p3_sum_data, 3'b000} : p3_sum_IIR_out;
+//assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data : p3_xdif_IIR_out;
+//assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data : p3_ydif_IIR_out;
+//assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data : p3_sum_IIR_out;
 
 
 // %%%%%%%%%%%%%%%%%%   P3 ADC GROUP DAQ_RAM MODULES   %%%%%%%%%%%%%%%%%%%%%
@@ -1044,7 +1079,7 @@ DAQ_RAM daq_ram_p3_xdif(
 	.tx_complete(daq_p3_xdif_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p3_store_strb),
-	.wr_data({p3_xdif_RAM_data[12], p3_xdif_RAM_data})
+	.wr_data({p3_xdif_RAM_data[DSP_WIDTH-1], p3_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 reg 			daq_p3_ydif_tx_en = 1'b0;
@@ -1062,7 +1097,7 @@ DAQ_RAM daq_ram_p3_ydif(
 	.tx_complete(daq_p3_ydif_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p3_store_strb),
-	.wr_data({p3_ydif_RAM_data[12], p3_ydif_RAM_data})
+	.wr_data({p3_ydif_RAM_data[DSP_WIDTH-1], p3_ydif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 reg 			daq_p3_sum_tx_en = 1'b0;
@@ -1080,7 +1115,7 @@ DAQ_RAM daq_ram_p3_sum(
 	.tx_complete(daq_p3_sum_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p3_store_strb),
-	.wr_data({p3_sum_RAM_data[12], p3_sum_RAM_data})
+	.wr_data({p3_sum_RAM_data[DSP_WIDTH-1], p3_sum_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 
@@ -1148,31 +1183,45 @@ Interleaver Interleaver1(clk357, trig_strb, Interleave, FF_en, output_en);
 `endif
 
 //Instance FF module
-	
-FFControl loop (
+wire loop_oflowDet;
+
+PFF_DSP_16 loop (
 	.clk(clk357),
 	.store_strb(store_strb),
 	.feedfwd_en_b(output_en), 
 	//.feedfwd_en_b(FF_en && output_en), 
+	//.useDiode_b(1'b1),
+	.useDiode_b(useDiode),
+	.loop2_useDiode_b(loop2_useDiode),
+	.diodeGating_b(diodeGating),
+	.loop2_diodeGating_b(loop2_diodeGating),
 	.use_strobes_b(use_strbs), 
 	.start_proc_b(start_addr), 
 	.end_proc_b(end_addr), 
 	.kick1_delay_b(k1_del), 
 	.kick2_delay_b(k2_del), 
 	.opMode_b(FFOpMode), 
+	//.oflowMode_b(2'd2),
+	.oflowMode_b(oflowMode),
 	.kick1_constDac_val_b(k1_const), 
 	.kick2_constDac_val_b(k2_const), 
-	.diodeIn(p1_xdif_RAM_data), 
+	//.diodeIn(p1_xdif_RAM_data[15:3]),
+	.diodeIn(p1_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]), 
+	.loop2_diodeIn(p2_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]),
 	.mixerIn(p1_ydif_RAM_data), 
+	.loop2_mixerIn(p2_ydif_RAM_data),
+	//.mixerIn({p1_ydif_RAM_data, 3'b000}), 
 	.kick1_gain_b(k1_gain), 
 	.kick2_gain_b(k2_gain), 
+	.loop2_kick1_gain_b(loop2_k1_gain), 
+	.loop2_kick2_gain_b(loop2_k2_gain), 
 	.DAC1clkPhase_b(DAC1phase), 
 	.DAC2clkPhase_b(DAC2phase), 
 	.oflowClr(1'b0), 
 	.DAC1_IIRtapWeight(DAC1_IIRtapWeight), 
 	.DAC2_IIRtapWeight(DAC2_IIRtapWeight), 
 	//.IIRbypass(IIRbypass_b[10:9]),
-	.oflowDetect(), 
+	.oflowDetect(loop_oflowDet), 
 	.kick1_dout(dac1_out), 
 	.kick2_dout(dac2_out), 
 	//.kick3_dout(dac3_out), 
@@ -1894,9 +1943,11 @@ always @(posedge clk357) begin
 end
 assign status = {pll_clk357_locked_a, dcm200_locked_a, idelayctrl_rdy_a, led1_out, p3_mon_saturated, p2_mon_saturated, p1_mon_saturated};
 
-reg rst_state_a;
+reg rst_state_a, oflowDet, loop_oflowDet_b;
 (* equivalent_register_removal = "no", shreg_extract = "no" *) reg clkPLL_sel_b, clkPLL_sel_c;
 always @(posedge clk40) begin
+	loop_oflowDet_b <= loop_oflowDet;
+	oflowDet <= (loop_oflowDet_b | bank1_oflowDet | bank2_oflowDet | bank3_oflowDet);
 	rst_state_a <= rst_state;
 	clkPLL_sel_c <= ~clkPLL_sel;
 	clkPLL_sel_b <= clkPLL_sel_c;
@@ -1926,7 +1977,7 @@ monitor_readback monitor_readback1 (
 	.rb9(p3_mon_count1),
 	.rb10(p3_mon_count2),
 	.rb11(p3_mon_count3),
-	.rb12({1'b0, p3_mon_total_data_del}),
+	.rb12({oflowDet, p3_mon_total_data_del}),
 	//.rb13({6'b000000,clk_align_b})
 	.rb13({pulse_ctr,output_en})
 );
