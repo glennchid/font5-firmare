@@ -583,11 +583,12 @@ adc_block p1_adc_block(
 parameter ch1_bitflip = 13'b1011010000101;
 parameter ch2_bitflip = 13'b0101110001000;
 parameter ch3_bitflip = 13'b0001011110100;
-//(* shreg_extract = "no" *) reg [4:0] bank1_sr_tap_a = 5'd0, bank1_sr_tap_b = 5'd0;//, bank1_sr_tap_c = 5'd0;
+(* shreg_extract = "no" *) reg [4:0] bank1_sr_tap_a = 5'd0, bank1_sr_tap_b = 5'd0, bank1_sr_tap_c = 5'd0;
+reg [1:0] bank1_sr_bypass = 2'b00;
 
-dataRegConvert #(13, ch1_bitflip ^ -13'sd4096) ch1_dataRegConvert(clk357, ch1_data_in_del, bank1_sr_tap, p1_xdif_data);
-dataRegConvert #(13, ch2_bitflip ^ -13'sd4096) ch2_dataRegConvert(clk357, ch2_data_in_del, bank1_sr_tap, p1_ydif_data);
-dataRegConvert #(13, ch3_bitflip ^ -13'sd4096) ch3_dataRegConvert(clk357, ch3_data_in_del, bank1_sr_tap, p1_sum_data);
+dataRegConvert #(13, ch1_bitflip ^ -13'sd4096) ch1_dataRegConvert(clk357, bank1_sr_bypass, ch1_data_in_del, bank1_sr_tap_c, p1_xdif_data);
+dataRegConvert #(13, ch2_bitflip ^ -13'sd4096) ch2_dataRegConvert(clk357, bank1_sr_bypass, ch2_data_in_del, bank1_sr_tap_c, p1_ydif_data);
+dataRegConvert #(13, ch3_bitflip ^ -13'sd4096) ch3_dataRegConvert(clk357, bank1_sr_bypass, ch3_data_in_del, bank1_sr_tap_c, p1_sum_data);
 //dataRegConvert #(13) ch1_dataRegConvert(clk357, ch1_data_in_del, p1_xdif_data);
 //dataRegConvert #(13) ch2_dataRegConvert(clk357, ch2_data_in_del, p1_ydif_data);
 //dataRegConvert #(13) ch3_dataRegConvert(clk357, ch3_data_in_del, p1_sum_data);
@@ -612,9 +613,14 @@ reg [10:0] IIRbypass_a = 11'd0, IIRbypass_b = 11'd0;
 //reg [12:0] p1_xdif_corr, p1_ydif_corr, p1_sum_corr;
 
 always @(posedge clk357) begin
-	//bank1_sr_tap_a <= bank1_sr_tap;
-	//bank1_sr_tap_b <= bank1_sr_tap_a;
-	//bank1_sr_tap_c <= bank1_sr_tap_b;
+	bank1_sr_tap_a <= bank1_sr_tap;
+	bank1_sr_tap_b <= bank1_sr_tap_a;
+	bank1_sr_tap_c <= bank1_sr_tap_b;
+	case (bank1_sr_tap_b)
+	5'd0: bank1_sr_bypass <= 2'b01;
+	5'd1: bank1_sr_bypass <= 2'b10;
+	default: bank1_sr_bypass <= 2'b00;
+	endcase
 	IIRbypass_a <= IIRbypass;
 	IIRbypass_b <= IIRbypass_a;
 //	p1_xdif_data_reg <= p1_xdif_data;
@@ -632,7 +638,7 @@ antiDroopIIR #(17) antiDroopIIR_ch1(
 	.din(p1_xdif_data),
 	.tapWeight(ch1_IIRtapWeight),
 	.accClr_en(1'b1),
-	.oflowClr(),
+	//.oflowClr(),
 	.oflowDetect(ch1_oflowDet),
 	.dout(p1_xdif_IIR_out)
 );
@@ -643,7 +649,7 @@ antiDroopIIR #(17) antiDroopIIR_ch2(
 	.din(p1_ydif_data),
 	.tapWeight(ch2_IIRtapWeight),
 	.accClr_en(1'b1),
-	.oflowClr(),
+	//.oflowClr(),
 	.oflowDetect(ch2_oflowDet),
 	.dout(p1_ydif_IIR_out)
 );
@@ -654,7 +660,7 @@ antiDroopIIR #(17) antiDroopIIR_ch3(
 	.din(p1_sum_data),
 	.tapWeight(ch3_IIRtapWeight),
 	.accClr_en(1'b1),
-	.oflowClr(),
+	//.oflowClr(),
 	.oflowDetect(ch3_oflowDet),
 	.dout(p1_sum_IIR_out)
 );
@@ -799,11 +805,12 @@ adc_block p2_adc_block(
 parameter ch4_bitflip = 13'b0111100000000;
 parameter ch5_bitflip = 13'b0100110011010;
 parameter ch6_bitflip = 13'b1111111010110;
-//(* shreg_extract = "no" *) reg [4:0] bank2_sr_tap_a = 5'd0, bank2_sr_tap_b = 5'd0;//, bank2_sr_tap_c = 5'd0;
+(* shreg_extract = "no" *) reg [4:0] bank2_sr_tap_a = 5'd0, bank2_sr_tap_b = 5'd0, bank2_sr_tap_c = 5'd0;
+reg [1:0] bank2_sr_bypass = 2'b00;
 
-dataRegConvert #(13, ch4_bitflip ^ -13'sd4096) ch4_dataRegConvert(clk357, ch4_data_in_del, bank2_sr_tap, p2_xdif_data);
-dataRegConvert #(13, ch5_bitflip ^ -13'sd4096) ch5_dataRegConvert(clk357, ch5_data_in_del, bank2_sr_tap, p2_ydif_data);
-dataRegConvert #(13, ch6_bitflip ^ -13'sd4096) ch6_dataRegConvert(clk357, ch6_data_in_del, bank2_sr_tap, p2_sum_data);
+dataRegConvert #(13, ch4_bitflip ^ -13'sd4096) ch4_dataRegConvert(clk357, bank2_sr_bypass, ch4_data_in_del, bank2_sr_tap_c, p2_xdif_data);
+dataRegConvert #(13, ch5_bitflip ^ -13'sd4096) ch5_dataRegConvert(clk357, bank2_sr_bypass, ch5_data_in_del, bank2_sr_tap_c, p2_ydif_data);
+dataRegConvert #(13, ch6_bitflip ^ -13'sd4096) ch6_dataRegConvert(clk357, bank2_sr_bypass, ch6_data_in_del, bank2_sr_tap_c, p2_sum_data);
 
 // Flip the signals which were incorrect polarity at LVDS inputs
 //`include "p2_adcblock_flip_signals.v"
@@ -823,7 +830,7 @@ antiDroopIIR #(17) antiDroopIIR_ch4(
 	.din(p2_xdif_data),
 	.tapWeight(ch4_IIRtapWeight),
 	.accClr_en(1'b1),
-	.oflowClr(),
+	//.oflowClr(),
 	.oflowDetect(ch4_oflowDet),
 	.dout(p2_xdif_IIR_out)
 );
@@ -834,7 +841,7 @@ antiDroopIIR #(17) antiDroopIIR_ch5(
 	.din(p2_ydif_data),
 	.tapWeight(ch5_IIRtapWeight),
 	.accClr_en(1'b1),
-	.oflowClr(),
+	//.oflowClr(),
 	.oflowDetect(ch5_oflowDet),
 	.dout(p2_ydif_IIR_out)
 );
@@ -845,16 +852,21 @@ antiDroopIIR #(17) antiDroopIIR_ch6(
 	.din(p2_sum_data),
 	.tapWeight(ch6_IIRtapWeight),
 	.accClr_en(1'b1),
-	.oflowClr(),
+	//.oflowClr(),
 	.oflowDetect(ch6_oflowDet),
 	.dout(p2_sum_IIR_out)
 );
 
 reg bank2_oflowDet = 1'b0;
 always @(posedge clk357) begin
-//bank2_sr_tap_a <= bank2_sr_tap;
-//bank2_sr_tap_b <= bank2_sr_tap_a;
-//bank2_sr_tap_c <= bank2_sr_tap_b;
+bank2_sr_tap_a <= bank2_sr_tap;
+bank2_sr_tap_b <= bank2_sr_tap_a;
+bank2_sr_tap_c <= bank2_sr_tap_b;
+case (bank2_sr_tap_b)
+	5'd0: bank2_sr_bypass <= 2'b01;
+	5'd1: bank2_sr_bypass <= 2'b10;
+	default: bank2_sr_bypass <= 2'b00;
+	endcase
 bank2_oflowDet <= (ch4_oflowDet | ch5_oflowDet | ch6_oflowDet);
 end
 
@@ -987,11 +999,12 @@ adc_block p3_adc_block(
 parameter ch7_bitflip = 13'b0001101000010;
 parameter ch8_bitflip = 13'b1000011100001;
 parameter ch9_bitflip = 13'b0001001111010;
-//(* shreg_extract = "no" *) reg [4:0] bank3_sr_tap_a = 5'd0, bank3_sr_tap_b = 5'd0;//, bank3_sr_tap_c = 5'd0;
+(* shreg_extract = "no" *) reg [4:0] bank3_sr_tap_a = 5'd0, bank3_sr_tap_b = 5'd0, bank3_sr_tap_c = 5'd0;
+reg [1:0] bank3_sr_bypass = 2'b00;
 
-dataRegConvert #(13, ch7_bitflip ^ -13'sd4096) ch7_dataRegConvert(clk357, ch7_data_in_del, bank3_sr_tap, p3_xdif_data);
-dataRegConvert #(13, ch8_bitflip ^ -13'sd4096) ch8_dataRegConvert(clk357, ch8_data_in_del, bank3_sr_tap, p3_ydif_data);
-dataRegConvert #(13, ch9_bitflip ^ -13'sd4096) ch9_dataRegConvert(clk357, ch9_data_in_del, bank3_sr_tap, p3_sum_data);
+dataRegConvert #(13, ch7_bitflip ^ -13'sd4096) ch7_dataRegConvert(clk357, bank3_sr_bypass, ch7_data_in_del, bank3_sr_tap_c, p3_xdif_data);
+dataRegConvert #(13, ch8_bitflip ^ -13'sd4096) ch8_dataRegConvert(clk357, bank3_sr_bypass, ch8_data_in_del, bank3_sr_tap_c, p3_ydif_data);
+dataRegConvert #(13, ch9_bitflip ^ -13'sd4096) ch9_dataRegConvert(clk357, bank3_sr_bypass, ch9_data_in_del, bank3_sr_tap_c, p3_sum_data);
 
 // Flip the signals which were incorrect polarity at LVDS inputs
 //`include "p3_adcblock_flip_signals.v"
@@ -1011,7 +1024,7 @@ antiDroopIIR #(17) antiDroopIIR_ch7(
 	.din(p3_xdif_data),
 	.tapWeight(ch7_IIRtapWeight),
 	.accClr_en(1'b1),
-	.oflowClr(),
+	//.oflowClr(),
 	.oflowDetect(ch7_oflowDet),
 	.dout(p3_xdif_IIR_out)
 );
@@ -1022,7 +1035,7 @@ antiDroopIIR #(17) antiDroopIIR_ch8(
 	.din(p3_ydif_data),
 	.tapWeight(ch8_IIRtapWeight),
 	.accClr_en(1'b1),
-	.oflowClr(),
+	//.oflowClr(),
 	.oflowDetect(ch8_oflowDet),
 	.dout(p3_ydif_IIR_out)
 );
@@ -1033,16 +1046,21 @@ antiDroopIIR #(17) antiDroopIIR_ch9(
 	.din(p3_sum_data),
 	.tapWeight(ch9_IIRtapWeight),
 	.accClr_en(1'b1),
-	.oflowClr(),
+	//.oflowClr(),
 	.oflowDetect(ch9_oflowDet),
 	.dout(p3_sum_IIR_out)
 );
 
 reg bank3_oflowDet = 1'b0;
 always @(posedge clk357) begin
-//bank3_sr_tap_a <= bank3_sr_tap;
-//bank3_sr_tap_b <= bank3_sr_tap_a;
-//bank3_sr_tap_c <= bank3_sr_tap_b;
+bank3_sr_tap_a <= bank3_sr_tap;
+bank3_sr_tap_b <= bank3_sr_tap_a;
+bank3_sr_tap_c <= bank3_sr_tap_b;
+case (bank3_sr_tap_b)
+	5'd0: bank3_sr_bypass <= 2'b01;
+	5'd1: bank3_sr_bypass <= 2'b10;
+	default: bank3_sr_bypass <= 2'b00;
+	endcase
 bank3_oflowDet <= (ch7_oflowDet | ch8_oflowDet | ch9_oflowDet);
 end
 
@@ -1933,7 +1951,13 @@ wire [6:0] status;
 reg pll_clk357_locked_a = 1'b0, dcm200_locked_a = 1'b0, idelayctrl_rdy_a = 1'b0, dcm360_locked_a = 1'b0; //clk_align_a, clk_align_b;
 //reg pll_clk357_locked_a, idelayctrl_rdy_a; //clk_align_a, clk_align_b;
 
+reg rst_state_a, oflowDet, loop_oflowDet_b;
+wire oflow_state;
+(* shreg_extract = "no" *) reg oflow_state_a = 1'b0;
+
 always @(posedge clk357) begin
+	loop_oflowDet_b <= loop_oflowDet;
+	oflowDet <= (loop_oflowDet_b | bank1_oflowDet | bank2_oflowDet | bank3_oflowDet);
 	pll_clk357_locked_a <= pll_clk357_locked;
 	dcm200_locked_a <= dcm200_locked;
 	dcm360_locked_a <= dcm360_locked;
@@ -1943,11 +1967,10 @@ always @(posedge clk357) begin
 end
 assign status = {pll_clk357_locked_a, dcm200_locked_a, idelayctrl_rdy_a, led1_out, p3_mon_saturated, p2_mon_saturated, p1_mon_saturated};
 
-reg rst_state_a, oflowDet, loop_oflowDet_b;
+overflow_detector oflowDet1(clk357, poll_uart || dcm200_rst, oflowDet && TFSMstate[2], oflow_state);
 (* equivalent_register_removal = "no", shreg_extract = "no" *) reg clkPLL_sel_b, clkPLL_sel_c;
 always @(posedge clk40) begin
-	loop_oflowDet_b <= loop_oflowDet;
-	oflowDet <= (loop_oflowDet_b | bank1_oflowDet | bank2_oflowDet | bank3_oflowDet);
+	oflow_state_a <= oflow_state;
 	rst_state_a <= rst_state;
 	clkPLL_sel_c <= ~clkPLL_sel;
 	clkPLL_sel_b <= clkPLL_sel_c;
@@ -1977,7 +2000,7 @@ monitor_readback monitor_readback1 (
 	.rb9(p3_mon_count1),
 	.rb10(p3_mon_count2),
 	.rb11(p3_mon_count3),
-	.rb12({oflowDet, p3_mon_total_data_del}),
+	.rb12({oflow_state_a, p3_mon_total_data_del}),
 	//.rb13({6'b000000,clk_align_b})
 	.rb13({pulse_ctr,output_en})
 );

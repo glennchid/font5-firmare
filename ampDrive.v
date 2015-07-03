@@ -11,6 +11,7 @@ module ampDrive (
 	input signed [15:0] din,
 	input DACclkPhase,
 	input signed [6:0] IIRtapWeight,
+	output reg oflowDetect = 1'b0,
 	//output reg signed [12:0] dout = 13'd0,
 	//output reg DAC_en = 1'b0
 	(* IOB = "true" *) output reg signed [12:0] dout = 13'd0, //For the sake of Iverilog!!
@@ -99,7 +100,9 @@ end*/
 
 (* equivalent_register_removal = "no", shreg_extract = "no" *) reg feedfwd_en_a = 0, feedfwd_en_b = 0; //PIPELINE REGISTERS
 //reg signed [15:0] amp_drive_b = 16'sd0; //PIPELINE REGISTER
+wire oflowDet;
 always @(posedge clk) begin
+	oflowDetect <= oflowDet;
 	feedfwd_en_a <= feedfwd_en;
 	feedfwd_en_b <= feedfwd_en_a;
 	//amp_drive_b <= amp_drive;
@@ -142,8 +145,8 @@ antiDroopIIR_16 #(16) antiDroopIIR_DAC(
 	.din(amp_drive),
 	.tapWeight(IIRtapWeight),
 	.accClr_en(1'b1),
-	.oflowClr(),
-	.oflowDetect(),
+	//.oflowClr(),
+	.oflowDetect(oflowDet),
 	.dout(amp_drive_AD)
 );
 

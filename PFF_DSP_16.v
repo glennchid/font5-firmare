@@ -290,14 +290,15 @@ end
 end*/
 
 // Instance the DriveOutput modules //
-ampDrive kick1Drive(clk, store_strb, feedfwd_en, use_strobes, start_proc, end_proc, kick1_delay, opMode, kick1_constDac_val, kick1_drive_b, DAC1clkPhase, DAC1_IIRtapWeight, kick1_dout, DAC1_en);//, kick3_dout, DAC3_en);
-ampDrive kick2Drive(clk, store_strb, feedfwd_en, use_strobes, start_proc, end_proc, kick2_delay, opMode, kick2_constDac_val, kick2_drive_b, DAC2clkPhase, DAC2_IIRtapWeight, kick2_dout, DAC2_en);//, kick4_dout, DAC4_en);
+wire DAC1_IIR_oflowDet, DAC2_IIR_oflowDet;
+ampDrive kick1Drive(clk, store_strb, feedfwd_en, use_strobes, start_proc, end_proc, kick1_delay, opMode, kick1_constDac_val, kick1_drive_b, DAC1clkPhase, DAC1_IIRtapWeight, DAC1_IIR_oflowDet, kick1_dout, DAC1_en);//, kick3_dout, DAC3_en);
+ampDrive kick2Drive(clk, store_strb, feedfwd_en, use_strobes, start_proc, end_proc, kick2_delay, opMode, kick2_constDac_val, kick2_drive_b, DAC2clkPhase, DAC2_IIRtapWeight, DAC2_IIR_oflowDet, kick2_dout, DAC2_en);//, kick4_dout, DAC4_en);
 
 reg kick1_oflowDet_a = 1'b0, kick2_oflowDet_a = 1'b0;
 always @(posedge clk) begin
 	kick1_oflowDet_a <= kick1_oflowDet;
 	kick2_oflowDet_a <= kick2_oflowDet;
-	oflowDetect <= (kick1_oflowDet_a | kick2_oflowDet_a | loop2_kick1_oflowDet | loop2_kick2_oflowDet | kick1_drive_oflowDet | kick2_drive_oflowDet);
+	oflowDetect <= (kick1_oflowDet_a | kick2_oflowDet_a | loop2_kick1_oflowDet | loop2_kick2_oflowDet | kick1_drive_oflowDet | kick2_drive_oflowDet | DAC1_IIR_oflowDet | DAC2_IIR_oflowDet);
 end
 
 

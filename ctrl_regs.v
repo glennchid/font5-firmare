@@ -263,13 +263,13 @@ wire loop2_useDiode = ctrl_regs[ADDROFF+60][4];
 wire loop2_diodeGating = ctrl_regs[ADDROFF+60][5];
 
 
-//wire [4:0] bank1_sr_tap = ctrl_regs[ADDROFF+61][4:0];
-//wire [4:0] bank2_sr_tap = ctrl_regs[ADDROFF+62][4:0];
-//wire [4:0] bank3_sr_tap = ctrl_regs[ADDROFF+63][4:0];
+wire [4:0] bank1_sr_tap = ctrl_regs[ADDROFF+61][4:0];
+wire [4:0] bank2_sr_tap = ctrl_regs[ADDROFF+62][4:0];
+wire [4:0] bank3_sr_tap = ctrl_regs[ADDROFF+63][4:0];
 
-wire [5:0] bank1_sr_tap = ctrl_regs[ADDROFF+61][5:0];
-wire [5:0] bank2_sr_tap = ctrl_regs[ADDROFF+62][5:0];
-wire [5:0] bank3_sr_tap = ctrl_regs[ADDROFF+63][5:0];
+//wire [5:0] bank1_sr_tap = ctrl_regs[ADDROFF+61][5:0];
+//wire [5:0] bank2_sr_tap = ctrl_regs[ADDROFF+62][5:0];
+//wire [5:0] bank3_sr_tap = ctrl_regs[ADDROFF+63][5:0];
 
 ///// GAIN STAGES //////
 

@@ -19,7 +19,7 @@ NET "FONT5_detect" LOC = "AP12";
 NET "clk357_n" LOC = "AH19";
 NET "clk357_p" LOC = "AH20";
 NET "clk357" TNM_NET = "clk357";
-TIMESPEC "TS_clk357" = PERIOD "clk357" 2.6ns HIGH 50 %;
+TIMESPEC "TS_clk357" = PERIOD "clk357" 2.8ns HIGH 50 %;
 
 #INST "BUFGMUX_CTRL_inst" LOC = "BUFGCTRL_X0Y0";
 

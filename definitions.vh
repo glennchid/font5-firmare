@@ -2,6 +2,8 @@
 
 `define DOUBLE_CONTROL_REGS
 
+`define 14BIT_GAIN
+
 //`define ADDPIPEREGS
 
 //`define DISABLE_AUXOUTS

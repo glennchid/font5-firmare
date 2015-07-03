@@ -4,7 +4,7 @@ module antiDroopIIR (
 	input signed [12:0] din,
 	input signed [6:0] tapWeight,
 	input accClr_en,
-	input oflowClr,
+	//input oflowClr,
 	output reg oflowDetect = 1'd0,
 	//output reg signed [12:0] dout = 13'sd0);
 	output reg signed [15:0] dout = 16'sd0);
@@ -50,11 +50,12 @@ always @(posedge clk) begin
 	if (trig_edge && accClr_en) tap <= 48'd0;
 	else tap <= multreg + tap;
 	//tap <= din*tapWeight + tap;
-	if (oflowDetect && oflowClr) oflowDetect <= 1'b0;
+	//if (oflowDetect && oflowClr) oflowDetect <= 1'b0;
 	//else if ((~& tap[47:IIR_scale+12]) || (& ~tap[47:IIR_scale+12])) oflowDetect <= 1'b1;
 	//else if ((~& tap[47:IIR_scale+12]) || (& tap[47:IIR_scale+12])) oflowDetect <= 1'b1;
-	else if (^ tap[IIR_scale+13:IIR_scale+12]) oflowDetect <= 1'b1;
-	else oflowDetect <= oflowDetect;
+	//else if (^ tap[IIR_scale+13:IIR_scale+12]) oflowDetect <= 1'b1;
+	//else oflowDetect <= oflowDetect;
+	oflowDetect <= (^tap[IIR_scale+13:IIR_scale+12]) ? 1'b1 : 1'b0;
 end
 
 endmodule
