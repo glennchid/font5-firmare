@@ -123,7 +123,7 @@ parameter DSP_WIDTH = 16;
 //`define DISABLE_AUXOUTS;
 
 //`define LOAD_ATF_DEFAULTS
-//`define LOAD_CTF_DEFAULTS
+`define LOAD_CTF_DEFAULTS
 
 
 `ifdef DOUBLE_CONTROL_REGS
@@ -167,17 +167,17 @@ reg [CR_WIDTH-1:0] ctrl_regs_mem [0:N_CTRL_REGS-1];
 
 //Instantiate USR_ACCESS register
 
-wire [31:0] usr_access;
+//wire [31:0] usr_access;
 
    // USR_ACCESS_VIRTEX5: Configuration Data Memory Access Port
    //                     Virtex-5
    // Xilinx HDL Language Template, version 13.2
 
-   USR_ACCESS_VIRTEX5 USR_ACCESS_VIRTEX5_inst (
+/*   USR_ACCESS_VIRTEX5 USR_ACCESS_VIRTEX5_inst (
       .CFGCLK(),      // 1-bit configuration clock output
       .DATA(usr_access),          // 32-bit config data output
       .DATAVALID() // 1-bit data valid output
-   );
+   );*/
 
    // End of USR_ACCESS_VIRTEX5_inst instantiation
 
@@ -383,7 +383,7 @@ timing_synch_fsm timing_synch1 (
 //	.trig_out_delay2(cr_trig_out_delay2),
 //	.amp_trig(trig_out_temp),
 //	.amp_trig2(trig_out_temp2),
-	.store_strb(store_strb),
+	.store_strb_b(store_strb),
 	.adc_powerup(adc_powerup_0),
 	.adc_align_en(adc_align_en),
 	//.p1_bunch_strb(),
@@ -583,8 +583,8 @@ adc_block p1_adc_block(
 parameter ch1_bitflip = 13'b1011010000101;
 parameter ch2_bitflip = 13'b0101110001000;
 parameter ch3_bitflip = 13'b0001011110100;
-(* shreg_extract = "no" *) reg [4:0] bank1_sr_tap_a = 5'd0, bank1_sr_tap_b = 5'd0, bank1_sr_tap_c = 5'd0;
-reg [1:0] bank1_sr_bypass = 2'b00;
+(* shreg_extract = "no" *) reg [4:0] bank1_sr_tap_a = 5'd2, bank1_sr_tap_b = 5'd2, bank1_sr_tap_c = 5'd2;
+reg [1:0] bank1_sr_bypass = 2'b11;
 
 dataRegConvert #(13, ch1_bitflip ^ -13'sd4096) ch1_dataRegConvert(clk357, bank1_sr_bypass, ch1_data_in_del, bank1_sr_tap_c, p1_xdif_data);
 dataRegConvert #(13, ch2_bitflip ^ -13'sd4096) ch2_dataRegConvert(clk357, bank1_sr_bypass, ch2_data_in_del, bank1_sr_tap_c, p1_ydif_data);
@@ -601,7 +601,9 @@ dataRegConvert #(13, ch3_bitflip ^ -13'sd4096) ch3_dataRegConvert(clk357, bank1_
 //Insert Droop Correction Filter 
 
 wire signed [DSP_WIDTH-1:0] p1_xdif_IIR_out, p1_xdif_RAM_data;
-wire signed [DSP_WIDTH-1:0] p1_ydif_IIR_out, p1_ydif_RAM_data;
+//wire signed [DSP_WIDTH-1:0] p1_ydif_IIR_out, p1_ydif_RAM_data;
+wire signed [DSP_WIDTH-1:0] p1_ydif_IIR_out;
+wire signed [DSP_WIDTH:0] p1_ydif_RAM_data;
 wire signed [DSP_WIDTH-1:0] p1_sum_IIR_out, p1_sum_RAM_data;
 wire ch1_oflowDet, ch2_oflowDet, ch3_oflowDet;
 
@@ -665,13 +667,24 @@ antiDroopIIR #(17) antiDroopIIR_ch3(
 	.dout(p1_sum_IIR_out)
 );
 reg bank1_oflowDet = 1'b0;
-always @(posedge clk357) bank1_oflowDet <= (ch1_oflowDet | ch2_oflowDet | ch3_oflowDet);
+wire chan2_offset_oflow;
+reg signed [12:0] chan2_offset_a = 13'd0, chan2_offset_b = 13'd0;
+reg signed [12:0] chan5_offset_a = 13'd0, chan5_offset_b = 13'd0;
+
+always @(posedge clk357) begin
+chan2_offset_a <= chan2_offset;
+chan2_offset_b <= chan2_offset_a;
+chan5_offset_a <= chan5_offset;
+chan5_offset_b <= chan5_offset_a;
+bank1_oflowDet <= (ch1_oflowDet | ch2_oflowDet | ch3_oflowDet | chan2_offset_oflow);
+//bank1_oflowDet <= (ch1_oflowDet | ch2_oflowDet | ch3_oflowDet);
+end
 
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data_fix : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data_fix : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data_fix : p1_sum_IIR_out;
 assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? {p1_xdif_data, 3'b000} : p1_xdif_IIR_out;
-assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? {p1_ydif_data, 3'b000} : p1_ydif_IIR_out;
+assign p1_ydif_RAM_data = ((~IIRbypass_b[1]) ? {p1_ydif_data, 3'b000} : p1_ydif_IIR_out) + {chan2_offset_b, 3'b000};
 assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? {p1_sum_data, 3'b000} : p1_sum_IIR_out;
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data : p1_ydif_IIR_out;
@@ -682,6 +695,9 @@ assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? {p1_sum_data, 3'b000} : p1_sum_IIR_
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data : p1_xdif_corr;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data : p1_ydif_corr;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data : p1_sum_corr;
+
+assign chan2_offset_oflow = (^p1_ydif_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
+
 
 // %%%%%%%%%%%%%%%%%%   P1 ADC GROUP DAQ_RAM MODULES   %%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -805,8 +821,8 @@ adc_block p2_adc_block(
 parameter ch4_bitflip = 13'b0111100000000;
 parameter ch5_bitflip = 13'b0100110011010;
 parameter ch6_bitflip = 13'b1111111010110;
-(* shreg_extract = "no" *) reg [4:0] bank2_sr_tap_a = 5'd0, bank2_sr_tap_b = 5'd0, bank2_sr_tap_c = 5'd0;
-reg [1:0] bank2_sr_bypass = 2'b00;
+(* shreg_extract = "no" *) reg [4:0] bank2_sr_tap_a = 5'd2, bank2_sr_tap_b = 5'd2, bank2_sr_tap_c = 5'd2;
+reg [1:0] bank2_sr_bypass = 2'b11;
 
 dataRegConvert #(13, ch4_bitflip ^ -13'sd4096) ch4_dataRegConvert(clk357, bank2_sr_bypass, ch4_data_in_del, bank2_sr_tap_c, p2_xdif_data);
 dataRegConvert #(13, ch5_bitflip ^ -13'sd4096) ch5_dataRegConvert(clk357, bank2_sr_bypass, ch5_data_in_del, bank2_sr_tap_c, p2_ydif_data);
@@ -818,7 +834,10 @@ dataRegConvert #(13, ch6_bitflip ^ -13'sd4096) ch6_dataRegConvert(clk357, bank2_
 //Insert P2 Droop Correction Filters 
 
 wire signed [DSP_WIDTH-1:0] p2_xdif_IIR_out, p2_xdif_RAM_data;
-wire signed [DSP_WIDTH-1:0] p2_ydif_IIR_out, p2_ydif_RAM_data;
+//wire signed [DSP_WIDTH-1:0] p2_ydif_IIR_out, p2_ydif_RAM_data;
+wire signed [DSP_WIDTH-1:0] p2_ydif_IIR_out;
+wire signed [DSP_WIDTH:0] p2_ydif_RAM_data;
+
 wire signed [DSP_WIDTH-1:0] p2_sum_IIR_out, p2_sum_RAM_data;
 wire ch4_oflowDet, ch5_oflowDet, ch6_oflowDet;
 
@@ -858,6 +877,7 @@ antiDroopIIR #(17) antiDroopIIR_ch6(
 );
 
 reg bank2_oflowDet = 1'b0;
+wire chan5_offset_oflow;
 always @(posedge clk357) begin
 bank2_sr_tap_a <= bank2_sr_tap;
 bank2_sr_tap_b <= bank2_sr_tap_a;
@@ -867,18 +887,23 @@ case (bank2_sr_tap_b)
 	5'd1: bank2_sr_bypass <= 2'b10;
 	default: bank2_sr_bypass <= 2'b00;
 	endcase
-bank2_oflowDet <= (ch4_oflowDet | ch5_oflowDet | ch6_oflowDet);
+bank2_oflowDet <= (ch4_oflowDet | ch5_oflowDet | ch6_oflowDet | chan5_offset_oflow);
+//bank2_oflowDet <= (ch4_oflowDet | ch5_oflowDet | ch6_oflowDet);
+
 end
 
 //assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data_fix : p2_xdif_IIR_out;
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data_fix : p2_ydif_IIR_out;
 //assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data_fix : p2_sum_IIR_out;
 assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? {p2_xdif_data, 3'b000} : p2_xdif_IIR_out;
-assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out;
+assign p2_ydif_RAM_data = ((~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out)  + {chan5_offset_b, 3'b000};
+//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out;
 assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? {p2_sum_data, 3'b000} : p2_sum_IIR_out;
 //assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data : p2_xdif_IIR_out;
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data : p2_ydif_IIR_out;
 //assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data : p2_sum_IIR_out;
+
+assign chan5_offset_oflow = (^p2_ydif_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 
 // %%%%%%%%%%%%%%%%%%   P2 ADC GROUP DAQ_RAM MODULES   %%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -999,8 +1024,8 @@ adc_block p3_adc_block(
 parameter ch7_bitflip = 13'b0001101000010;
 parameter ch8_bitflip = 13'b1000011100001;
 parameter ch9_bitflip = 13'b0001001111010;
-(* shreg_extract = "no" *) reg [4:0] bank3_sr_tap_a = 5'd0, bank3_sr_tap_b = 5'd0, bank3_sr_tap_c = 5'd0;
-reg [1:0] bank3_sr_bypass = 2'b00;
+(* shreg_extract = "no" *) reg [4:0] bank3_sr_tap_a = 5'd2, bank3_sr_tap_b = 5'd2, bank3_sr_tap_c = 5'd2;
+reg [1:0] bank3_sr_bypass = 2'b11;
 
 dataRegConvert #(13, ch7_bitflip ^ -13'sd4096) ch7_dataRegConvert(clk357, bank3_sr_bypass, ch7_data_in_del, bank3_sr_tap_c, p3_xdif_data);
 dataRegConvert #(13, ch8_bitflip ^ -13'sd4096) ch8_dataRegConvert(clk357, bank3_sr_bypass, ch8_data_in_del, bank3_sr_tap_c, p3_ydif_data);
@@ -1226,8 +1251,9 @@ PFF_DSP_16 loop (
 	//.diodeIn(p1_xdif_RAM_data[15:3]),
 	.diodeIn(p1_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]), 
 	.loop2_diodeIn(p2_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]),
-	.mixerIn(p1_ydif_RAM_data), 
-	.loop2_mixerIn(p2_ydif_RAM_data),
+	.mixerIn(p1_ydif_RAM_data[DSP_WIDTH-1:0]), 
+	//.loop2_mixerIn(p2_ydif_RAM_data),
+	.loop2_mixerIn(p2_ydif_RAM_data[DSP_WIDTH-1:0]),
 	//.mixerIn({p1_ydif_RAM_data, 3'b000}), 
 	.kick1_gain_b(k1_gain), 
 	.kick2_gain_b(k2_gain), 
@@ -1951,7 +1977,7 @@ wire [6:0] status;
 reg pll_clk357_locked_a = 1'b0, dcm200_locked_a = 1'b0, idelayctrl_rdy_a = 1'b0, dcm360_locked_a = 1'b0; //clk_align_a, clk_align_b;
 //reg pll_clk357_locked_a, idelayctrl_rdy_a; //clk_align_a, clk_align_b;
 
-reg rst_state_a, oflowDet, loop_oflowDet_b;
+reg rst_state_a = 1'b1, oflowDet =  1'b0, loop_oflowDet_b = 1'b0;
 wire oflow_state;
 (* shreg_extract = "no" *) reg oflow_state_a = 1'b0;
 
@@ -1967,7 +1993,11 @@ always @(posedge clk357) begin
 end
 assign status = {pll_clk357_locked_a, dcm200_locked_a, idelayctrl_rdy_a, led1_out, p3_mon_saturated, p2_mon_saturated, p1_mon_saturated};
 
-overflow_detector oflowDet1(clk357, poll_uart || dcm200_rst, oflowDet && TFSMstate[2], oflow_state);
+//overflow_detector oflowDet1(clk357, poll_uart || dcm200_rst, oflowDet && TFSMstate[2], oflow_state);
+//overflow_detector oflowDet1(clk357, poll_uart || dcm200_rst, oflowDet, TFSMstate[2], oflow_state);
+overflow_detector oflowDet1(clk357, poll_uart || dcm200_rst, oflowDet, store_strb, oflow_state);
+
+
 (* equivalent_register_removal = "no", shreg_extract = "no" *) reg clkPLL_sel_b, clkPLL_sel_c;
 always @(posedge clk40) begin
 	oflow_state_a <= oflow_state;

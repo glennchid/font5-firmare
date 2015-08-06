@@ -13,8 +13,8 @@ parameter SRL_SIZE = 32;
 
 //reg [12:0] dsh_in [0:SRL_SIZE-1];
 
-(* shreg_extract = "no" *) reg [3:0] tap_b = 4'd0;
-(* shreg_extract = "no" *) reg shiftBypass_b = 5'd0;
+(* shreg_extract = "no" *) reg [4:0] tap_b = 5'd0;
+(* shreg_extract = "no" *) reg shiftBypass_b = 1'b1;
 
 
 //reg [12:0] dsh_out;
@@ -26,7 +26,8 @@ initial for (i=0; i < (SRL_SIZE-2); i=i+1) dsh_in[i]=16'd0; // for simulation ON
 `endif
 always @(posedge clk) begin
 	shiftBypass_b <= shiftBypass;
-	tap_b <= tap - 5'd2;
+	//tap_b <= tap - 5'd2;
+	tap_b <= (tap < 5'd2) ? 5'd0 : (tap - 5'd2);
 	dsh_in[0] <= din;
 	//for (i=1; i < SRL_SIZE; i=i+1) dsh_in[i] <= dsh_in[i-1];
 	//for (n=SRL_SIZE-1; n > 0; n=n-1) dsh_in[n] <= dsh_in[n-1];

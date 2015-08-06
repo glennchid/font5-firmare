@@ -14,19 +14,19 @@ parameter INIT = 13'sd0;
 
 //reg [12:0] dsh_in [0:SRL_SIZE-1];
 
-(* shreg_extract = "no" *) reg [4:0] tap_b = 5'd0;
-(* shreg_extract = "no" *) reg sr_bypass_b = 5'd0;
+(* shreg_extract = "no" *) reg [4:0] tap_b = 5'd2;
+(* shreg_extract = "no" *) reg sr_bypass_b = 1'b1;
 
 //reg [12:0] dsh_out;
 integer n;
 `ifdef XILINX_ISIM
 integer i;
-initial for (i=0; i < SRL_SIZE; i=i+1) dsh_in[i]= INIT; // for simulation ONLY
-initial for (i=0; i < (SRL_SIZE-2); i=i+1) dsh_in[i]= INIT; // for simulation ONLY
+//initial for (i=0; i < SRL_SIZE; i=i+1) dsh_in[i]= INIT; // for simulation ONLY
+initial for (i=0; i < (SRL_SIZE-3); i=i+1) dsh_in[i]= 13'sd0; // for simulation ONLY
 `endif
 always @(posedge clk) begin
 	sr_bypass_b <= sr_bypass;
-	tap_b <= tap - 5'd2;
+	tap_b <= (tap < 5'd2) ? 5'd0 : (tap - 5'd2);
 	dsh_in[0] <= din;
 	//for (i=1; i < SRL_SIZE; i=i+1) dsh_in[i] <= dsh_in[i-1];
 	//for (n=SRL_SIZE-1; n > 0; n=n-1) dsh_in[n] <= dsh_in[n-1];

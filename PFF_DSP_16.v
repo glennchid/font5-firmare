@@ -35,7 +35,7 @@ module PFF_DSP_16 (
 	//output DAC4_en
 );
 
-parameter GAIN_SCALE = -4; //sets the scale factor for the gain; e.g. 128 ADC cnts maps to 2048 at DAC for GAIN_SCALE = -4 //
+parameter GAIN_SCALE =-3;// -4; //sets the scale factor for the gain; e.g. 128 ADC cnts maps to 2048 at DAC for GAIN_SCALE = -4 //
 //parameter GAIN_OFFSET = 5; // maps ADC counts to DAC counts for the mid-range of the gain (i.e. 2^5 for 7-bit gain) // 7-bit gain //
 parameter GAIN_OFFSET = 12; // maps ADC counts to DAC counts for the mid-range of the gain (i.e. 2^5 for 7-bit gain) // 14-bit gain //
 //parameter GAIN_MSB = 23; // 7-bit gain // sets the MSB of the gain multipication (i.e. 16-bit x 7-bit = 23-bit + 1 bit for overflow detection = 24-bit) //

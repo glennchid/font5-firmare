@@ -61,7 +61,7 @@ module timing_synch_fsm(
 	//input [7:0] trig_out_delay2,
 	//output reg		amp_trig,
 	//output reg		amp_trig2,
-	output reg		store_strb = 1'b0,
+	output reg		store_strb_b = 1'b0,
 	/*output reg		p1_bunch_strb,
 	output reg		p2_bunch_strb,
 	output reg		p3_bunch_strb,*/
@@ -464,7 +464,7 @@ reg sample_counting = 1'b0;
 /*always @(posedge fastClk) begin
 	start_store <= sample_hold_off;
 	end_store <= sample_hold_off + 164; // ** need the number of samples here **
-//	/*p1_b1_abs_pos <= p1_b1_pos + sample_hold_off;
+	p1_b1_abs_pos <= p1_b1_pos + sample_hold_off;
 	p1_b2_abs_pos <= p1_b2_pos + sample_hold_off;
 	p1_b3_abs_pos <= p1_b3_pos + sample_hold_off;
 	p1_b1_abs_pos_a <= p1_b1_abs_pos;
@@ -489,7 +489,7 @@ reg sample_counting = 1'b0;
 //						p1_sample_count <= p1_sample_count + 1;
 						store_strb <= 1;
 					end
-//					/*p1_b1_abs_pos_a: begin
+//					p1_b1_abs_pos_a: begin
 //						p1_sample_count <= p1_sample_count + 1;
 						p1_bunch_strb <= 1;
 					end
@@ -516,13 +516,14 @@ reg sample_counting = 1'b0;
 	//end
 //end
 
-
+reg store_strb = 1'b0;
 
 always @(posedge fastClk) begin
 	//start_store <= sample_hold_off_b;
 	//end_store <= sample_hold_off_b + 164; // ** need the number of samples here **
 	start_store <= sample_hold_off_b;
 	end_store <= sample_hold_off_b + num_smpls_b;
+	store_strb_b <= store_strb;
 	if (~sample_counting) begin
 		sample_counting <= (sample_en & ~ sample_en_b) ? 1 : 0;
 		sample_count <= 0;
@@ -572,7 +573,7 @@ always @(posedge fastClk) begin
 	p2_b3_abs_pos_a <= p2_b3_abs_pos;
 end
 always @(posedge fastClk) begin
-//	/*if (rst) begin
+//	if (rst) begin
 		p2_sample_count <= 0;
 		p2_counting <= 0;
 	end else begin*/

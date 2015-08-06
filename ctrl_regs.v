@@ -100,12 +100,17 @@ assign k2_del = ctrl_regs[44][6:2];
 //assign k2_del = ctrl_regs[44][6:1];
 //assign FFOpMode = ctrl_regs[44][0];
 assign FFOpMode = ctrl_regs[44][1:0];
-assign k1_const = {ctrl_regs[46][5:0], ctrl_regs[45]};
-assign k2_const = {ctrl_regs[48][5:0], ctrl_regs[47]};
+//sign k1_const = {ctrl_regs[46][5:0], ctrl_regs[45]};
+//assign k2_const = {ctrl_regs[48][5:0], ctrl_regs[47]};
+assign k1_const = {ctrl_regs[86][5:0], ctrl_regs[87]};
+assign k2_const = {ctrl_regs[88][5:0], ctrl_regs[89]};
+
 //assign k1_gain = ctrl_regs[49];
 //assign k2_gain = ctrl_regs[50];
-assign DAC1phase = ctrl_regs[46][6];
-assign DAC2phase = ctrl_regs[48][6];
+//assign DAC1phase = ctrl_regs[46][6];
+//assign DAC2phase = ctrl_regs[48][6];
+assign DAC1phase = ctrl_regs[86][6];
+assign DAC2phase = ctrl_regs[88][6];
 
 
 //Declare temporary wires for memory bit-selects
@@ -271,6 +276,9 @@ wire [4:0] bank3_sr_tap = ctrl_regs[ADDROFF+63][4:0];
 //wire [5:0] bank2_sr_tap = ctrl_regs[ADDROFF+62][5:0];
 //wire [5:0] bank3_sr_tap = ctrl_regs[ADDROFF+63][5:0];
 
+wire signed [12:0] chan2_offset = {ctrl_regs[ADDROFF+43][5:0], ctrl_regs[ADDROFF+42]};
+wire signed [12:0] chan5_offset = {ctrl_regs[ADDROFF+50][5:0], ctrl_regs[ADDROFF+49]};
+
 ///// GAIN STAGES //////
 
 //   7-bit //
@@ -281,16 +289,24 @@ wire [6:0] loop2_k1_gain = ctrl_regs[37];
 wire [6:0] loop2_k2_gain = ctrl_regs[38];*/
 
 // 14-bit ////
-`ifdef 14BIT_GAIN
-wire [13:0] k1_gain = {ctrl_regs[49], ctrl_regs[86]};
-wire [13:0] k2_gain = {ctrl_regs[50], ctrl_regs[87]};
-wire [13:0] loop2_k1_gain = {ctrl_regs[37], ctrl_regs[88]};
-wire [13:0] loop2_k2_gain = {ctrl_regs[38], ctrl_regs[89]};
+`ifdef GAINRES_14
+//wire [13:0] k1_gain = {ctrl_regs[49], ctrl_regs[86]};
+//wire [13:0] k2_gain = {ctrl_regs[50], ctrl_regs[87]};
+//wire [13:0] loop2_k1_gain = {ctrl_regs[37], ctrl_regs[88]};
+//wire [13:0] loop2_k2_gain = {ctrl_regs[38], ctrl_regs[89]};
+wire [13:0] k1_gain = {ctrl_regs[37], ctrl_regs[38]};
+wire [13:0] k2_gain = {ctrl_regs[45], ctrl_regs[46]};
+wire [13:0] loop2_k1_gain = {ctrl_regs[47], ctrl_regs[48]};
+wire [13:0] loop2_k2_gain = {ctrl_regs[49], ctrl_regs[50]};
 `else // 7-bit gain
-wire [6:0] k1_gain = ctrl_regs[49];
-wire [6:0] k2_gain = ctrl_regs[50];
-wire [6:0] loop2_k1_gain = ctrl_regs[37];
-wire [6:0] loop2_k2_gain = ctrl_regs[38];
+//wire [6:0] k1_gain = ctrl_regs[49];
+//wire [6:0] k2_gain = ctrl_regs[50];
+//wire [6:0] loop2_k1_gain = ctrl_regs[37];
+//wire [6:0] loop2_k2_gain = ctrl_regs[38];
+wire [6:0] k1_gain = ctrl_regs[37];
+wire [6:0] k2_gain = ctrl_regs[45];
+wire [6:0] loop2_k1_gain = ctrl_regs[47];
+wire [6:0] loop2_k2_gain = ctrl_regs[49];
 `endif
 
 
