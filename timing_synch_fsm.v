@@ -36,10 +36,10 @@
 // 
 //
 //////////////////////////////////////////////////////////////////////////////////
-module timing_synch_fsm(
+module timing_synch_fsm #(parameter FASTCLK_PERIOD = 2.8) (
 	input 		fastClk,
 	input			slowClk,
-	input 		rst,
+	//input 		rst,
 	input 		trigSyncExt, //i.e ring clock
 	input			trigSyncExt_edge_sel,
 	input 		trig,
@@ -80,11 +80,15 @@ module timing_synch_fsm(
 
 	);
 
+//localparam reg [11:0] WARMUP_TC = (9240/FASTCLK_PERIOD);
+localparam [11:0] WARMUP_TC = (9240/FASTCLK_PERIOD);
+//localparam WARMUP_TC = 12'd1774;
+
 
 //parameter trigSync_size = 8'd164;
 //parameter use_trigSyncExt = 1'd1;
 //parameter trigSyncExt_en = 1'd0;
-parameter sync_en = 1'd0;
+localparam sync_en = 1'd0;
 //parameter num_smpls = 10'd164;
 
 // Internal wires
@@ -94,7 +98,8 @@ parameter sync_en = 1'd0;
 // For synchronisation
 //reg trig_c=0, trig_d=0;
 //reg trig_a=0, trig_b=0, trig_c=0, trig_d=0;
-(* IOB = "TRUE" *) reg trigSyncExt_a=0; 
+//(* IOB = "TRUE" *) reg trigSyncExt_a=0; 
+reg trigSyncExt_a=0; 
 reg trigSyncExt_b = 1'b0, trigSyncExt_c = 1'b0, trigSyncExt_d = 1'b0;
 
 reg trigSyncExt_edge_sel_a = 1'b0, trigSyncExt_edge_sel_b = 1'b0;
@@ -200,11 +205,11 @@ reg adc_align_en_a = 1'b0;
 
 //reg [3:0] state;
 
-parameter IDLE = 4'b0001;
+localparam IDLE = 4'b0001;
 //parameter TRIGGERED = 5'b00001;
-parameter WARM_UP = 4'b0010;
-parameter SAMPLING = 4'b0100;
-parameter ALIGN = 4'b1000;
+localparam WARM_UP = 4'b0010;
+localparam SAMPLING = 4'b0100;
+localparam ALIGN = 4'b1000;
 //parameter POWERDOWN = 5'b10000;
 
 //FSM
@@ -254,7 +259,9 @@ always @(posedge fastClk) begin
 			WARM_UP: begin
 				warmUp_ctr <= warmUp_ctr + 1'd1;
 				//if (trig_count == trig_delay_b + 12'd20) begin // next state logic
-				if (warmUp_ctr == 12'd3300) begin // next state logic
+				//if (warmUp_ctr == 12'd3300) begin // next state logic
+				//if (warmUp_ctr == 12'd1774) begin // next state logic
+				if (warmUp_ctr == WARMUP_TC) begin // next state logic
 					triggered <= triggered;
 					state <= SAMPLING;
 					adc_powerup <= adc_powerup;
@@ -324,7 +331,7 @@ wire adc_align_en_slow;
 
 
 always @(posedge slowClk) begin
-	if (rst) begin // puttinjg everything under sync rst might be dangerous - think about! 
+	/*if (rst) begin // puttinjg everything under sync rst might be dangerous - think about! 
 		adc_align_en_slow_a <= 1'b0;
 		adc_align_en_slow_b <= 1'b0;
 		adc_align_en_slow_c <= 1'b0;
@@ -333,7 +340,7 @@ always @(posedge slowClk) begin
 		align_mon_counting <= 1'b0;
 		align_mon_ctr <= 14'd0;
 		end //if rst
-	else begin
+	else begin*/
 		adc_align_en_slow_a <= adc_align_en_a;
 		adc_align_en_slow_b <= adc_align_en_slow_a;
 		adc_align_en_slow_c <= adc_align_en_slow_b;
@@ -355,7 +362,7 @@ always @(posedge slowClk) begin
 			align_mon_counting <= align_mon_counting;
 			align_mon_ctr <= align_mon_ctr + 14'd1;*/
 			end // else 
-		end // else (if rst)
+		//end // else (if rst)
 	end //always
 	//end
 	

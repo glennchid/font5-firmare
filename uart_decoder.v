@@ -103,10 +103,15 @@ parameter STATE_FILL_RAM		= 1'b1;
 reg		[1:0]	 ram_addr_skip = 2'b0;
 reg				 state_register = 1'b0;
 
+reg byte_rdy_b = 1'b0;
+//wire byte_rdy_le = byte_rdy && ~byte_uld; // detect the rising edge of byte rdy
+wire byte_rdy_fe = byte_rdy_b && ~byte_rdy; // detect the falling edge of byte rdy
+
 always @(posedge clk) begin
 	if (rst) begin
 		// Enter default state (loading 357MHz domain control registers)
 		state_register <= STATE_CTRL_REGS;
+		byte_rdy_b <= 1'b0;
 		byte_uld <= 1'b0;
 		current_addr <= 7'd0;
 		data_out <= 7'd0;
@@ -126,7 +131,9 @@ always @(posedge clk) begin
 		poll_uart <= 1'b0;
 		pulse_ctr_rst <= 1'b0;
 	end else begin //Waiting for byte_rdy (synchronous to clk)
-		if (byte_rdy) begin //Byte ready, unload it
+		byte_rdy_b <= byte_rdy;
+		byte_uld <= (byte_rdy & ~byte_rdy_b) ? 1'b1 : 1'b0;
+		/*if (byte_rdy) begin //Byte ready, unload it
 			byte_uld <= (byte_uld) ? byte_uld : 1'b1; 
 			state_register <= state_register;
 			current_addr <= current_addr;
@@ -146,10 +153,10 @@ always @(posedge clk) begin
 			trim_dac_trig <= trim_dac_trig;
 			poll_uart <= poll_uart;
 			pulse_ctr_rst <= pulse_ctr_rst;
-		end else begin //Byte has been unloaded
-			byte_uld <=  (byte_uld) ? 1'b0 : byte_uld;
+		end else begin //Byte has been unloaded*/
+			//byte_uld <=  (byte_uld) ? 1'b0 : byte_uld;
 			//DECODE BYTE HERE
-			if (byte_uld && data_in[7]) begin //Byte contains data.  Redirect according to state
+			if (byte_rdy_fe && data_in[7]) begin //Byte contains data.  Redirect according to state
 				state_register <= state_register;
 				current_addr <= current_addr;
 				ram_addr <= ram_addr;
@@ -184,7 +191,7 @@ always @(posedge clk) begin
 						ram_data_strobe <= ram_data_strobe;
 					end
 				endcase
-			end else if (byte_uld && data_in<=8'd8) begin //This is a reserved command
+			end else if (byte_rdy_fe && data_in<=8'd8) begin //This is a reserved command
 				state_register <= state_register;
 				current_addr <= current_addr;
 				ram_addr <= ram_addr;
@@ -306,7 +313,7 @@ always @(posedge clk) begin
 						pulse_ctr_rst <= pulse_ctr_rst;
 					end
 				endcase
-			end else if (byte_uld && data_in<=8'd36 && data_in>=8'd32) begin //This command specifies a RAM select
+			end else if (byte_rdy_fe && data_in<=8'd36 && data_in>=8'd32) begin //This command specifies a RAM select
 				state_register <= STATE_FILL_RAM; // Change State
 				ram_select <= data_in[4:0]; // set ram_select to bottom 5 bits of data_in
 				ram_addr <= 15'd0; //Reset ram address counter
@@ -325,7 +332,7 @@ always @(posedge clk) begin
 				trim_dac_trig <= trim_dac_trig;
 				poll_uart <= poll_uart;
 				pulse_ctr_rst <= pulse_ctr_rst;
-			end else if (byte_uld) begin //This command specifies a control register
+			end else if (byte_rdy_fe) begin //This command specifies a control register
 				state_register <= STATE_CTRL_REGS; // Change State
 				current_addr <= data_in[6:0]; // set current_addr to bottom 6 bits of data_in
 				data_out <= data_out;
@@ -376,7 +383,7 @@ always @(posedge clk) begin
 				data_out <= data_out;
 				ram_data <= ram_data;
 			end //if (~byte_uld etc)
-		end //if (~byte_rdy)
+		//end //if (~byte_rdy)
 	end //if (~rst)
 end //always
 

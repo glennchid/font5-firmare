@@ -123,10 +123,17 @@ assign DAC2phase = ctrl_regs[88][6];
 assign p1_align_ch_sel = ctrl_regs[ADDROFF+32][1:0];
 assign baud_rate = ctrl_regs[ADDROFF+32][3:2];
 assign clkPLL_sel = ctrl_regs[ADDROFF+32][4];
+wire synch_en = ctrl_regs[ADDROFF+32][5];
+wire sync_opMode = ctrl_regs[ADDROFF+32][6];
 //assign temp2 = ctrl_regs[33];
 assign p2_align_ch_sel = ctrl_regs[ADDROFF+33][1:0];
+wire [1:0] sync_cnt_n = ctrl_regs[ADDROFF+33][3:2];
+wire [1:0] sync_cnt_m = ctrl_regs[ADDROFF+33][5:4];
 //assign temp3 = ctrl_regs[34];
 assign p3_align_ch_sel = ctrl_regs[ADDROFF+34][1:0];
+wire constDAC1UARTor = ctrl_regs[ADDROFF+34][2];
+wire constDAC2UARTor = ctrl_regs[ADDROFF+34][3];
+
 
 //assign temp5 = ctrl_regs[35];
 assign p1_offset_delay = ctrl_regs[ADDROFF+35][6:0];
@@ -278,6 +285,7 @@ wire [4:0] bank3_sr_tap = ctrl_regs[ADDROFF+63][4:0];
 
 wire signed [12:0] chan2_offset = {ctrl_regs[ADDROFF+43][5:0], ctrl_regs[ADDROFF+42]};
 wire signed [12:0] chan5_offset = {ctrl_regs[ADDROFF+50][5:0], ctrl_regs[ADDROFF+49]};
+//wire signed [12:0] amp1lim = {ctrl_regs[ADDROFF+44][5:0], ctrl_regs[ADDROFF+45]};
 
 ///// GAIN STAGES //////
 

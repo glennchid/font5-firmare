@@ -97,7 +97,11 @@ module FONT5_base_xlnx(
 		output auxOutB1,
 		output auxOutA2,
 		output auxOutB2,
-		(* PULLUP = "TRUE" *) input FONT5_detect
+		(* PULLUP = "TRUE" *) input FONT5_detect,
+		output DirectIO2,
+		input auxInA,
+		output auxOutC
+		//inout DirectIO1
 		//input FONT5_detect
 		//diginput2_loopback
     );
@@ -644,6 +648,10 @@ FONT5_base FONT5_base_top (
 	 .IDDR2_Q1(IDDR2_Q1), //input to top (to Alignment monitors via ADC block)
 	 .IDDR2_Q2(IDDR2_Q2), //input to top (to Alignment monitors via ADC block)
 	 .IDDR3_Q1(IDDR3_Q1), //input to top (to Alignment monitors via ADC block)
-	 .IDDR3_Q2(IDDR3_Q2) //input to top (to Alignment monitors via ADC block)
+	 .IDDR3_Q2(IDDR3_Q2), //input to top (to Alignment monitors via ADC block)
+	 //.DirectIO1(DirectIO1)
+	 .DirIOB(DirectIO2),
+	 .auxInA(auxInA),
+	 .auxOutC(auxOutC)
     );
 endmodule 

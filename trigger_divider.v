@@ -33,7 +33,8 @@ module trigger_divider(
     output reg trig_out = 1'b0,
 	//output reg trig_strb
 	 output reg trig_strb = 1'b0,
-	 output reg [5:0] pulse_ctr = 6'd0
+	 output reg [5:0] pulse_ctr = 6'd0,
+	 output reg pile_up
     );
 
 // Input trigger and signal form UART are all async 
@@ -106,12 +107,18 @@ always @(posedge clk) begin
 	else blocked <= blocked;
 
 end
+
+//wire trig_rdy_
 	
 assign trig_edge = trig_c & ~trig_d;
 //assign unblock = trig_rdy_c & ~ trig_rdy_d;
 
 //pulse counter
 always @(posedge clk) begin
+	// NB pile_up needs re-writing - logic for blocked and pile_up should be the same
+	if (trig_edge) pile_up <= (trig_rdy_c) ? 1'b0 : 1'b1;
+	else pile_up <= pile_up;
+	
 	pulse_ctr_rst <= pulse_ctr_rst_a;
 	pulse_ctr_rst_a <= pulse_ctr_rst_b;
 	if (pulse_ctr_rst) pulse_ctr <= 6'd0;

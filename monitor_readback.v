@@ -31,11 +31,12 @@ module monitor_readback(
 	rb11,
 	//rb12
 	rb12,
-	rb13
+	rb13,
+	rb14
 );
 
 //parameter N_READBACKS = 13;
-parameter N_READBACKS = 14;
+parameter N_READBACKS = 15;
 
 // Ports
 input					clk;
@@ -60,6 +61,7 @@ input	  [6:0]		rb10;
 input	  [6:0]		rb11;
 input	  [6:0]		rb12;
 input	  [6:0]		rb13;
+input	  [6:0]		rb14;
 
 // Registers
 reg [6:0] readbacks_a [0:N_READBACKS-1];
@@ -90,6 +92,7 @@ always @(posedge clk) begin
 		readbacks_a[11]	<=	rb11;
 		readbacks_a[12]	<=	rb12;
 		readbacks_a[13]	<=	rb13;
+		readbacks_a[14]	<=	rb14;
 		for (i=0; i < N_READBACKS; i=i+1) begin
 			readbacks_b[i] <= readbacks_a[i];
 		end

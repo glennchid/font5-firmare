@@ -107,7 +107,11 @@ module FONT5_base(
 		input IDDR2_Q1, //input to top (to Alignment monitors via ADC block)
 		input IDDR2_Q2, //input to top (to Alignment monitors via ADC block)
 		input IDDR3_Q1, //input to top (to Alignment monitors via ADC block)
-		input IDDR3_Q2 //input to top (to Alignment monitors via ADC block)
+		input IDDR3_Q2, //input to top (to Alignment monitors via ADC block)
+		//inout DirectIO1 //Bi-directional I/O port for synchronisation
+		output DirIOB,
+		input auxInA,
+		output auxOutC
     );
 
 //parameters and defintions
@@ -122,8 +126,8 @@ parameter DSP_WIDTH = 16;
 
 //`define DISABLE_AUXOUTS;
 
-//`define LOAD_ATF_DEFAULTS
-`define LOAD_CTF_DEFAULTS
+`define LOAD_ATF_DEFAULTS
+//`define LOAD_CTF_DEFAULTS
 
 
 `ifdef DOUBLE_CONTROL_REGS
@@ -184,7 +188,8 @@ reg [CR_WIDTH-1:0] ctrl_regs_mem [0:N_CTRL_REGS-1];
 
 // %%%%%%%%%%%   WIRE DIGITAL INPUT TO TRIGGER LOOPBACK   %%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-wire clk2_16_tmp = diginput1;
+
+wire clk2_16_ext = (use_trigSyncExt) ? diginput1 : 1'b0;
 wire trig = diginput2;
 //assign diginput2_loopback = diginput2;
 //wire diginput2_loopback = diginput2;
@@ -285,7 +290,8 @@ else blocked <= blocked;
 end
 */
 wire [5:0] pulse_ctr;
-wire pulse_ctr_rst;			
+wire pulse_ctr_rst;		
+wire pile_up;	
 			
 trigger_divider trig_div (
     .clk(clk357), 
@@ -303,7 +309,8 @@ trigger_divider trig_div (
     .trig_out(trigger),
 	 //.trig_strb(trig_strb)
 	 .trig_strb(trig_strb),
-	 .pulse_ctr(pulse_ctr)
+	 .pulse_ctr(pulse_ctr),
+	 .pile_up(pile_up)
     );
 
 
@@ -344,11 +351,11 @@ wire			led1_strb;
 wire 			adc_powerup_0;
 wire [3:0] TFSMstate;
 
-timing_synch_fsm timing_synch1 (
+timing_synch_fsm #(.FASTCLK_PERIOD(FASTCLK_PERIOD)) timing_synch1 (
 	.fastClk(clk357),
 	.slowClk(clk40),
-	.rst(dcm200_rst),
-	.trigSyncExt(clk2_16_tmp),
+	//.rst(dcm200_rst),
+	.trigSyncExt(clk2_16_ext),
 	.trigSyncExt_edge_sel(cr_clk2_16_edge_sel),
 	.trig(trigger),
 	//.trig(trigger && run),
@@ -356,7 +363,7 @@ timing_synch_fsm timing_synch1 (
 	.sample_hold_off(cr_sample_hold_off),
 	.num_smpls(num_smpls),
 	.trigSync_size_b(trigSync_size),
-	.use_trigSyncExt_b(~use_trigSyncExt),
+	.use_trigSyncExt_b(use_trigSyncExt),
 	/*.p1_b1_pos(),
 	.p1_b2_pos(),
 	.p1_b3_pos(),
@@ -400,7 +407,9 @@ timing_synch_fsm timing_synch1 (
 //reg trig_out_temp_a, trig_out_temp_b, trig_out_temp_c, trig_out_temp_d;
 //reg trig_out_temp2_a, trig_out_temp2_b, trig_out_temp2_c, trig_out_temp2_d;
 reg adc_align_en_a = 1'b0, adc_align_en_b = 1'b0;//adc_align_en_c, adc_align_en_d;
-reg adc_powerup_a = 1'b0, adc_powerup_b = 1'b0, adc_powerup_c = 1'b0;
+//(* shreg_extract = "no" *) reg adc_powerup_c = 1'b0, adc_powerup_b = 1'b0, adc_powerup_a = 1'b0;
+(* shreg_extract = "no" *) reg adc_powerup_a = 1'b1, adc_powerup_b = 1'b1, adc_powerup_c = 1'b1;
+
 always @(posedge clk357) begin
 /*
 	trig_out_temp_a <= trig_out_temp;
@@ -430,14 +439,11 @@ always @(posedge clk357) begin
 	//adc_align_en_d <= adc_align_en_c;
 	// synthesis attribute shreg_extract of align_en_d is "no";
 	
-	adc_powerup_a <= adc_powerup_0;
-	// synthesis attribute shreg_extract of adc_powerup_a is "no";
+	adc_powerup_a <= ~adc_powerup_0;
 	adc_powerup_b <= adc_powerup_a;
-	// synthesis attribute shreg_extract of adc_powerup_b is "no";
 	adc_powerup_c <= adc_powerup_b;
-	// synthesis attribute shreg_extract of adc_powerup_c is "no";
-	adc_powerdown <= ~adc_powerup_c;
-	// synthesis attribute shreg_extract of adc_powerdown_d is "no";
+	//adc_powerdown <= adc_powerup_c;
+	adc_powerdown <= adc_powerup_c;
 end
 //assign amp_trig = trig_out_temp_d & cr_trig_out_en;
 //assign amp_trig2 = trig_out_temp2_d & cr_trig_out_en;
@@ -509,9 +515,13 @@ always @(posedge clk40) begin
 	end else begin
 		if (led1_strb) begin 
 			led1_count <= 5'd1;
+			led1_out <= led1_out;
 		end else begin
 			case (led1_count)
-				5'd0: led1_count <= 0;
+				5'd0: begin
+					led1_count <= 0;
+					led1_out <= led1_out;
+				end
 				5'd1: begin
 					led1_out <= 1;
 					led1_count <= led1_count + 1;
@@ -520,7 +530,10 @@ always @(posedge clk40) begin
 					led1_out <= 0;
 					led1_count <= 0;
 				end
-				default: led1_count <= led1_count + 1;
+				default: begin
+					led1_count <= led1_count + 1;
+					led1_out <= led1_out;
+				end
 			endcase
 		end
 	end
@@ -1221,12 +1234,47 @@ Interleaver Interleaver1(clk357, trig_strb, Interleave, FF_en, output_en);
 //Amplifier trigger control
 `ifdef INCLUDE_TESTBENCH
 `else  
-	AmpTrig2 AmpTrig1(clk357, TFSMstate[1], trig_out_en, trig_out1_delay, amp1_trig);
-	AmpTrig2 AmpTrig2(clk357, TFSMstate[1], trig_out_en, trig_out2_delay, amp2_trig);
+	AmpTrig2 #(26) AmpTrig1(clk357, TFSMstate[1], trig_out_en, trig_out1_delay, amp1_trig);
+	AmpTrig2 #(26) AmpTrig2(clk357, TFSMstate[1], trig_out_en, trig_out2_delay, amp2_trig);
 `endif
 
 //Instance FF module
 wire loop_oflowDet;
+
+//%%%%%%%%%%%%%%%%%%% INCLUDE UART ON DIGINA %%%%%%%%%%%%%%%%%%////////
+wire digIn1_uart = (use_trigSyncExt) ? 1'b0 : diginput1;
+wire uart2_byte_rdy, uart2_rx_unload;
+wire [7:0] uart2_rx_data;
+
+uart2_rx #(8, 9600) uart2_rx (	
+	.reset(dcm200_rst),
+	.clk(clk40_ibufg),
+	.uld_rx_data(uart2_rx_unload),
+	.rx_enable(1'b1),
+	.rx_data(uart2_rx_data),
+	.rx_in(digIn1_uart),
+	.byte_rdy(uart2_byte_rdy)
+);
+
+uart_unload #(.BYTE_WIDTH(8),.WORD_WIDTH(13)) uart2_uld (.rst(dcm200_rst), .clk(clk40_ibufg), .byte_rdy(uart2_byte_rdy), .unload_uart(uart2_rx_unload));
+
+wire [12:0] k1constDAC = (constDAC1UARTor) ? {uart2_rx_data, 5'd0} : k1_const;
+wire [12:0] k2constDAC = (constDAC2UARTor) ? {uart2_rx_data, 5'd0} : k2_const;
+
+`ifdef UART2_SELF_CHECK
+	uart2_tx #(8, 9600) uart2_tx (	
+	.reset(dcm200_rst),
+	.clk(clk40_ibufg),
+	//.baud_rate(baud_rate),
+	.ld_tx_data(~use_trigSyncExt),
+	.tx_data(8'd42),
+	.tx_enable(1'b1),
+	.tx_out(DirIOB),
+	.tx_empty()
+);	
+`else assign DirIOB = 1'bz;
+`endif
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ////
 
 PFF_DSP_16 loop (
 	.clk(clk357),
@@ -1246,8 +1294,10 @@ PFF_DSP_16 loop (
 	.opMode_b(FFOpMode), 
 	//.oflowMode_b(2'd2),
 	.oflowMode_b(oflowMode),
-	.kick1_constDac_val_b(k1_const), 
-	.kick2_constDac_val_b(k2_const), 
+	.kick1_constDac_val_b(k1constDAC), 
+	.kick2_constDac_val_b(k2constDAC), 
+	//.kick1_constDac_val_b(k1_const), 
+	//.kick2_constDac_val_b(k2_const), 
 	//.diodeIn(p1_xdif_RAM_data[15:3]),
 	.diodeIn(p1_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]), 
 	.loop2_diodeIn(p2_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]),
@@ -1265,6 +1315,7 @@ PFF_DSP_16 loop (
 	.DAC1_IIRtapWeight(DAC1_IIRtapWeight), 
 	.DAC2_IIRtapWeight(DAC2_IIRtapWeight), 
 	//.IIRbypass(IIRbypass_b[10:9]),
+	//.amp1lim_b(amp1lim),
 	.oflowDetect(loop_oflowDet), 
 	.kick1_dout(dac1_out), 
 	.kick2_dout(dac2_out), 
@@ -1276,6 +1327,11 @@ PFF_DSP_16 loop (
 	//.DAC4_en(dac4_clk)
 	);
 
+
+//assign dac3_clk = dac1_clk;
+//assign dac4_clk = dac2_clk;
+//assign dac3_out = dac1_out;
+//assign dac4_out = dac2_out;
 
 /*
 // %%%%%%%%%%%%%%%%   PROCESS DATA TO PRODUCE FB SIGNAL  %%%%%%%%%%%%%%%%%%%
@@ -1679,6 +1735,18 @@ wire [7:0] 	uart_rx_data;
 	.rx_empty(uart_rx_empty)
 );
 */
+/*uart2_rx #(8, 9600) uart_rx (	
+	.reset(dcm200_rst),
+	.clk(clk40_ibufg),
+	//.baud_rate(baud_rate),
+	.uld_rx_data(uart_rx_unload),
+	.rx_enable(1'b1),
+	.rx_data(uart_rx_data),
+	.rx_in(rs232_in),
+	//.rx_empty(uart_rx_empty)
+	.byte_rdy(uart_rx_empty)
+);*/
+
 uart_rx #(0) uart_rx (	
 	.reset(dcm200_rst),
 	.clk(clk40_ibufg),
@@ -1688,10 +1756,22 @@ uart_rx #(0) uart_rx (
 	.rx_data(uart_rx_data),
 	.rx_in(rs232_in),
 	.rx_empty(uart_rx_empty)
+	//.byte_rdy(uart_rx_empty)
 );
 
 // **** Instantiate UART TX ****
 
+/*uart2_tx #(8, 9600) uart_tx (	
+	.reset(dcm200_rst),
+	.clk(clk40),
+	//.baud_rate(baud_rate),
+	.ld_tx_data(uart_tx_load),
+	.tx_data(uart_tx_data),
+	.tx_enable(1'b1),
+	.tx_out(rs232_out),
+	.tx_empty(uart_tx_empty)
+);	
+*/
 uart_tx #(0) uart_tx (	
 	.reset(dcm200_rst),
 	.clk(clk40),
@@ -1702,7 +1782,6 @@ uart_tx #(0) uart_tx (
 	.tx_out(rs232_out),
 	.tx_empty(uart_tx_empty)
 );	
-
 	
 // **** Instantiate UART decoder ****
 //wire [4:0] 	ctrl_reg_addr_357;
@@ -1967,6 +2046,19 @@ always @(posedge clk357) begin
 end
 */
 
+// %%%%%%%%%%%%%%%%%%%%%%%% BOARD SYNCHRONISER %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+wire [1:0] syncStatus;
+wire syncOut;
+boardSynchroniser3 synchro1(clk40, synch_en, trig_rdy, sync_cnt_n, sync_cnt_m, auxInA, syncOut, syncStatus[0], syncStatus[1]);
+//boardSynchroniser synchro1(clk40, synch_en, trig_rdy, sync_cnt_n, sync_cnt_m, sync_opMode, syncStatus, syncInOut);
+//boardSynchroniser synchro1(clk40, synch_en, trig_rdy, sync_cnt_n, sync_cnt_m, sync_opMode, DirectIO1);
+//assign DirectIO1 = syncInOut;
+assign auxOutC = syncOut;
+
+
 // %%%%%%%%%%%%%%%%%%%%%%   READBACK MONITORS FOR DAQ  %%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2032,7 +2124,8 @@ monitor_readback monitor_readback1 (
 	.rb11(p3_mon_count3),
 	.rb12({oflow_state_a, p3_mon_total_data_del}),
 	//.rb13({6'b000000,clk_align_b})
-	.rb13({pulse_ctr,output_en})
+	.rb13({pulse_ctr,output_en}),
+	.rb14({4'b0000, pile_up, syncStatus})
 );
 
 

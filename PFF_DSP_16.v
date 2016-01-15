@@ -24,6 +24,7 @@ module PFF_DSP_16 (
 	input oflowClr,
 	input signed [6:0] DAC1_IIRtapWeight, DAC2_IIRtapWeight,
 	//input [1:0] IIRbypass,
+	//input signed [12:0] amp1lim_b,
 	output reg oflowDetect = 1'b0,
 	output signed [12:0] kick1_dout,
 	output signed [12:0] kick2_dout,
@@ -35,9 +36,9 @@ module PFF_DSP_16 (
 	//output DAC4_en
 );
 
-parameter GAIN_SCALE =-3;// -4; //sets the scale factor for the gain; e.g. 128 ADC cnts maps to 2048 at DAC for GAIN_SCALE = -4 //
+parameter GAIN_SCALE =-4;// -4; //sets the scale factor for the gain; e.g. 128 ADC cnts maps to 2048 at DAC for GAIN_SCALE = -4 //
 //parameter GAIN_OFFSET = 5; // maps ADC counts to DAC counts for the mid-range of the gain (i.e. 2^5 for 7-bit gain) // 7-bit gain //
-parameter GAIN_OFFSET = 12; // maps ADC counts to DAC counts for the mid-range of the gain (i.e. 2^5 for 7-bit gain) // 14-bit gain //
+parameter GAIN_OFFSET = 10; // 12; // maps ADC counts to DAC counts for the mid-range of the gain (i.e. 2^5 for 7-bit gain) // 14-bit gain //
 //parameter GAIN_MSB = 23; // 7-bit gain // sets the MSB of the gain multipication (i.e. 16-bit x 7-bit = 23-bit + 1 bit for overflow detection = 24-bit) //
 parameter GAIN_MSB = 30; // 14-bit gain // sets the MSB of the gain multipication (i.e. 16-bit x 14-bit = 30-bit + 1 bit for overflow detection = 31-bit) //
 
@@ -64,6 +65,8 @@ LUTROM LUT1(
 (* shreg_extract = "no" *) reg [1:0] oflowMode = 2'd0, oflowMode_a = 2'd0;
 (* keep = "yes", shreg_extract = "no" *) reg signed [17:0] lutReg_b = 18'sd0, loop2_lutReg_b = 18'sd0;
 (* shreg_extract = "no" *) reg signed [17:0] lutReg_c = 18'sd0, loop2_lutReg_c = 18'sd0;
+
+//(* shreg_extract = "no" *) reg signed [12:0] amp1lim = 13'sd0, amp1lim_a = 13'sd0;
 
 wire signed [17:0] loop2_lutReg;
 
@@ -110,6 +113,9 @@ wire signed [17:0] loop2_lutReg;
 `endif
 
 always @(posedge clk) begin
+	//amp1lim_a <= amp1lim_b;
+	//amp1lim <= amp1lim_a;
+
 	feedfwd_en <= feedfwd_en_a;
 	feedfwd_en_a <= feedfwd_en_b;
 	use_strobes <= use_strobes_a;
@@ -223,13 +229,31 @@ always @(posedge clk) begin
 	kick2_drive <= kick2_gainMult + loop2_kick2_gainMult;
 	end
 
-always @(*) begin
+/*always @(*) begin
 	if (^kick1_drive[16:15]) begin
 		kick1_drive_oflowDet = 1'b1;
 		(* full_case, parallel_case *) 
 		case(oflowMode)
 		2'b00: kick1_drive_b = kick1_drive[15:0];
 		2'b01: kick1_drive_b = 16'sd0;
+		2'b10: kick1_drive_b = (kick1_drive[16]) ? -16'sd32768 : 16'sd32767;
+		//default: kick1_drive_b = 16'sd0;
+		endcase
+	end else begin 
+		kick1_drive_b = kick1_drive[15:0];
+		kick1_drive_oflowDet = 1'b0;
+		end
+end*/
+
+always @(*) begin
+	if (^kick1_drive[16:15]) begin
+		//if (^kick1_drive[16:15] || (kick1_drive[15:3] > amp1lim) || (kick1_drive[15:13] < ~amp1lim)) begin
+		kick1_drive_oflowDet = 1'b1;
+		(* full_case, parallel_case *) 
+		case(oflowMode)
+		2'b00: kick1_drive_b = kick1_drive[15:0];
+		2'b01: kick1_drive_b = 16'sd0;
+		//2'b10: kick1_drive_b = (kick1_drive[16]) ? {~amp1lim, 3'b111} : {amp1lim, 3'b111};
 		2'b10: kick1_drive_b = (kick1_drive[16]) ? -16'sd32768 : 16'sd32767;
 		//default: kick1_drive_b = 16'sd0;
 		endcase
