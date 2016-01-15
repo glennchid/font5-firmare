@@ -36,21 +36,24 @@ TIMESPEC "TS_clk40" = PERIOD "clk40" 25ns HIGH 50 %;
 #NET "clk2_16_s" LOC = "H8";
 
 ## AUX OUT A and B & AUX_IN A and B
-#NET "auxOutA" LOC = "W6";
-#NET "auxOutB" LOC = "Y6";
-NET "auxOutA1" LOC = "W6";
-NET "auxOutB1" LOC = "Y6";
-NET "auxOutA2" LOC = "W10";
-NET "auxOutB2" LOC = "W9";
+#NET "auxOutA" LOC = "W6"; // FONT5
+#NET "auxOutB" LOC = "Y6"; // FONT5
+NET "auxOutA1" LOC = "W6"; // FONT5
+NET "auxOutB1" LOC = "Y6"; // FONT5
+NET "auxOutA2" LOC = "W10"; // FONT5A ONLY
+NET "auxOutB2" LOC = "W9"; // FONT5A ONLY
+NET "auxOutC" LOC = "U8"; // FONT5A ONLY
+#NET "auxOutD" LOC = "V10"; // FONT5A ONLY
+#NET "auxOutE" LOC = "V9"; // FONT5A ONLY
 #NET "auxInA" LOC = "G8"; //FONT5
 #NET "auxInB" LOC = "H8"; //FONT5
-#NET "auxInA" LOC = "G8"; //FONT5A
+NET "auxInA" LOC = "G8"; //FONT5A
 #NET "auxInB" LOC = "G13"; //FONT5A
 
 
-# Direct IOs
+# Direct IOs // NOT for regular use - use as probe outputs only!!
 #NET "DirectIO1" LOC = "H19";
-#NET "DirectIO2" LOC = "H20";
+NET "DirectIO2" LOC = "H20";
 #NET "DirectIO3" LOC = "H17";
 #NET "DirectIO4" LOC = "H18";
 
