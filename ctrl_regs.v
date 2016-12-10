@@ -122,7 +122,9 @@ assign DAC2phase = ctrl_regs[88][6];
 //assign temp1 = ctrl_regs[32];
 assign p1_align_ch_sel = ctrl_regs[ADDROFF+32][1:0];
 assign baud_rate = ctrl_regs[ADDROFF+32][3:2];
-assign clkPLL_sel = ctrl_regs[ADDROFF+32][4];
+`ifdef CLK357_PLL
+	wire clkPLL_sel = ctrl_regs[ADDROFF+32][4];
+`endif
 wire synch_en = ctrl_regs[ADDROFF+32][5];
 wire sync_opMode = ctrl_regs[ADDROFF+32][6];
 //assign temp2 = ctrl_regs[33];
@@ -192,7 +194,9 @@ assign run = ctrl_regs[ADDROFF+59][0];
 //assign IIRbypass = ctrl_regs[ADDROFF+61][1];
 //assign fastClk_sel = ctrl_regs[ADDROFF+61][2];
 
-assign fastClk_sel = ctrl_regs[51][0];
+`ifdef FASTCLK_INT
+	assign fastClk_sel = ctrl_regs[51][0];
+`endif
 assign trig_int_en = ctrl_regs[51][1];
 assign IIRbypass = {ctrl_regs[52][5:0], ctrl_regs[51][6:2]};
 

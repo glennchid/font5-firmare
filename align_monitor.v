@@ -41,6 +41,7 @@ module align_monitor(
 		input align_en,
 		input Q1,
 		input Q2,
+		//output reg align_end,
 		output reg [6:0] delay_modifier,
 		output reg delay_mod_strb,
 		output reg [6:0] count1,		//Monitoring
@@ -98,24 +99,28 @@ always @(posedge clk357) begin
 				samples_rdy <= samples_rdy;
 				end
 			2'd1: begin
-				if (~samp0) begin
+				samp0 <= (samp0) ? samp0 : Q1;
+				samp1 <= (samp0) ? Q1 : samp1;
+				samp2 <= (samp0) ? Q2 : samp2;
+				samp3 <= samp3;
+				sample_state <= (samp0) ? 2'd2 : sample_state; //Increment state
+				samples_rdy <= samples_rdy;
+				/*
+				//if (~samp0) begin
+				if (samp0==1'b1) begin // Modified by GBC 23/11/16 - init value of DDR is zero, therefore check for "1"
 					//We are on the correct phase, so continue
 					samp0 <= samp0;
 					samp1 <= Q1;
 					samp2 <= Q2;
-					samp3 <= samp3;
-					//Increment state
-					sample_state <= 2'd2;
-					samples_rdy <= samples_rdy;
-				end else begin
-					//Incorrect phase, so ignore this cycle and wait until next
-					samp0 <= 0;
+					sample_state <= 2'd2; //Increment state
+				end else begin //Incorrect phase, so ignore this cycle and wait until next
+					//samp0 <= 0;
+					samp0 <= Q1; // Modified by GBC 23/11/16
 					samp1 <= samp1;
 					samp2 <= samp2;
-					samp3 <= samp3;
 					sample_state <= sample_state;
-					samples_rdy <= samples_rdy;
 				end
+				*/
 				end
 			2'd2: begin
 				samp0 <= samp0;
@@ -190,9 +195,12 @@ reg [counter_bits-1:0] samp3_count;
 reg [1:0] state40 = 2'b00;
 //reg [5:0] iteration_counter; // GBC added for testbenching
 
+//wire align_en_end = align_en_slow_b & ~align_en_slow_a;
+
 always @(posedge clk40) begin
 	align_en_slow_a <= align_en;
 	align_en_slow_b <= align_en_slow_a;
+	//align_end <= align_en_end;
 	if (rst) begin
 		sample_trig <= 0;
 		delay_modifier <= 0;
@@ -367,17 +375,26 @@ always @(posedge clk40) begin
 					//Outside of threshold so modify but prevent wrap-around
 					if (samp2_count > 16) begin
 						if (delay_modifier != 7'b1000000) begin
-							delay_modifier <= delay_modifier + (-7'b1);
+							//delay_modifier <= delay_modifier + (-7'b1);
+							delay_modifier <= delay_modifier + 7'd001;
 							delay_mod_strb <= 1;
 						end
 					end else begin
 						if (delay_modifier != 7'b0111111) begin
-							delay_modifier <= delay_modifier + (7'b1);
+							//delay_modifier <= delay_modifier + (7'b1);
+							delay_modifier <= delay_modifier - 7'd001;
 							delay_mod_strb <= 1;				
 						end
 					end //else (if ~(samp2_count) > 64))
 				end
 		//	end
+
+			//rewrite GBC 29/11/16 - superfluous condition (comparing to 16) + condsider useful size of delay_mod
+			// delay_mod (6 bits) + 1 to catch overflow
+			/*if ((samp2_count > threshold min) && (samp2_count < 16)) begin //decrease the delay, provided it is not saturated (eg +/- half the range)
+				if (delay_modifier[6]) begin
+					delay_modifier <= delay_modifier;
+					delay_*/
 
 			//Store values for monitoring and output strobe
 			//count1 <= {2'b00, samp1_count};

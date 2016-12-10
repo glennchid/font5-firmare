@@ -39,14 +39,16 @@ module FONT5_base(
 		//output amp_trig,
 		//output amp_trig2,
 		(* IOB = "TRUE" *) output reg adc_powerdown = 1'b1, 
+		(* shreg_extract = "no" *) output reg iddr_ce = 1'b0,
+		//output dcm200_rst, //output to xlnx
 		output signed [12:0] dac1_out,
 		output dac1_clk,	
 		output signed [12:0] dac2_out,
 		output dac2_clk,
-		//output signed [12:0] dac3_out,
-		//output dac3_clk,	
-		//output signed [12:0] dac4_out,
-		//output dac4_clk,
+//		output signed [12:0] dac3_out,
+//		output dac3_clk,	
+//		output signed [12:0] dac4_out,
+//		output dac4_clk,
 		//(* IOB = "TRUE" *) output reg [12:0] dac1_out,
 		//(* IOB = "TRUE" *) output reg dac1_clk,	
 		//(* IOB = "TRUE" *) output reg [12:0] dac2_out,
@@ -75,17 +77,21 @@ module FONT5_base(
 		output reg auxOutB,
 		//output diginput2_loopback, //For monitoring digital input
 		//Internal control I/Os to top level
-		output dcm200_rst, //output to xlnx
 		input dcm200_locked, //input to top
 		output reg clk_blk = 1'b0, //output to xlnx
 		input idelayctrl_rdy, //input to top
-		input pll_clk357_locked, //input to top
 		output clk357_idelay_ce, //output to xlnx
 		output clk357_idelay_rst, //output to xlnx
 		output idelay_rst, //output to xlnx
-		input dcm360_locked, //input to top
-		output fastClk_sel, //output to xlnx
-		output reg clkPLL_sel_a, //output to xlnx
+		`ifdef FASTCLK_INT
+			input dcm360_locked, //input to top
+			output fastClk_sel, //output to xlnx
+		`endif
+		`ifdef CLK357_PLL
+			output dcm200_rst, //output to xlnx
+			input pll_clk357_locked, //input to top
+			output reg clkPLL_sel_a, //output to xlnx
+		`endif
 		output run, //output to xlnx
 		output delay_calc_strb1, //output to xlnx from ADC_block
 		output delay_calc_strb2, //output to xlnx from ADC_block
@@ -126,8 +132,8 @@ parameter DSP_WIDTH = 16;
 
 //`define DISABLE_AUXOUTS;
 
-`define LOAD_ATF_DEFAULTS
-//`define LOAD_CTF_DEFAULTS
+//`define LOAD_ATF_DEFAULTS
+`define LOAD_CTF_DEFAULTS
 
 
 `ifdef DOUBLE_CONTROL_REGS
@@ -348,7 +354,7 @@ wire			led1_strb;
 //wire			p1_bunch_strb;
 //wire			p2_bunch_strb;
 //wire			p3_bunch_strb;
-wire 			adc_powerup_0;
+wire 			adc_powerup;
 wire [3:0] TFSMstate;
 
 timing_synch_fsm #(.FASTCLK_PERIOD(FASTCLK_PERIOD)) timing_synch1 (
@@ -391,7 +397,7 @@ timing_synch_fsm #(.FASTCLK_PERIOD(FASTCLK_PERIOD)) timing_synch1 (
 //	.amp_trig(trig_out_temp),
 //	.amp_trig2(trig_out_temp2),
 	.store_strb_b(store_strb),
-	.adc_powerup(adc_powerup_0),
+	.adc_powerup(adc_powerup),
 	.adc_align_en(adc_align_en),
 	//.p1_bunch_strb(),
 	//.p2_bunch_strb(),
@@ -408,8 +414,7 @@ timing_synch_fsm #(.FASTCLK_PERIOD(FASTCLK_PERIOD)) timing_synch1 (
 //reg trig_out_temp2_a, trig_out_temp2_b, trig_out_temp2_c, trig_out_temp2_d;
 reg adc_align_en_a = 1'b0, adc_align_en_b = 1'b0;//adc_align_en_c, adc_align_en_d;
 //(* shreg_extract = "no" *) reg adc_powerup_c = 1'b0, adc_powerup_b = 1'b0, adc_powerup_a = 1'b0;
-(* shreg_extract = "no" *) reg adc_powerup_a = 1'b1, adc_powerup_b = 1'b1, adc_powerup_c = 1'b1;
-
+//(* shreg_extract = "no" *) reg adc_powerup_a = 1'b1, adc_powerup_b = 1'b1, adc_powerup_c = 1'b1;
 always @(posedge clk357) begin
 /*
 	trig_out_temp_a <= trig_out_temp;
@@ -439,12 +444,24 @@ always @(posedge clk357) begin
 	//adc_align_en_d <= adc_align_en_c;
 	// synthesis attribute shreg_extract of align_en_d is "no";
 	
-	adc_powerup_a <= ~adc_powerup_0;
-	adc_powerup_b <= adc_powerup_a;
-	adc_powerup_c <= adc_powerup_b;
-	//adc_powerdown <= adc_powerup_c;
-	adc_powerdown <= adc_powerup_c;
+	//adc_powerup_a <= adc_powerup;
+//	adc_powerup_a <= ~adc_powerup;
+//	adc_powerup_b <= adc_powerup_a;
+//	adc_powerup_c <= adc_powerup_b;
+//	adc_powerdown <= adc_powerup_c;
+	//adc_powerdown <= ~adc_powerup_a;
+
 end
+
+// Synchronise the ADC_powerdown and ADC_powerup on the 40 MHz domain
+(* ASYNC_REG = "true" *) reg adc_powerup_slow_a = 1'b0, adc_powerup_slow_b = 1'b0;
+always @(posedge clk40) begin
+	adc_powerup_slow_a <= adc_powerup; //Sync first stage
+	adc_powerup_slow_b <= adc_powerup_slow_a; // Sync second stage
+	adc_powerdown <= ~adc_powerup_slow_b; //Extra stage needed as this REG in IOB, can't be used in synchroniser + inverter (logic) usage
+	iddr_ce <= adc_powerup_slow_b; // Output register for CE of IDDR, *_slow_b used in logic!
+	end
+
 //assign amp_trig = trig_out_temp_d & cr_trig_out_en;
 //assign amp_trig2 = trig_out_temp2_d & cr_trig_out_en;
 //assign adc_powerdown = ~adc_powerup_d;
@@ -484,7 +501,11 @@ end
 //reg led2_out;
 reg [22:0] led2_count = 23'd0;
 always @(posedge clk40) begin
-	led0_out <= pll_clk357_locked;
+	`ifdef CLK357_PLL
+		led0_out <= pll_clk357_locked;
+	`else
+		led0_out <= 1'b1;
+	`endif
 	if (dcm200_rst) begin
 		led2_out <= 0;
 		led2_count <= 0;
@@ -579,9 +600,9 @@ adc_block p1_adc_block(
 	//.ch2_data_out(p1_ydif_data),
 	//.ch3_data_out(p1_sum_data),
 	.saturated(p1_mon_saturated),
-	.total_data_delay(p1_mon_total_data_del),	//Monitoring
-	.total_drdy_delay(p1_mon_total_drdy_del), //Monitoring
-	.delay_mod(p1_mon_delay_mod),					//Monitoring
+	.adc_data_delay(p1_mon_total_data_del),	//Monitoring
+	.adc_drdy_delay(p1_mon_total_drdy_del), //Monitoring
+	.delay_modifier(p1_mon_delay_mod),					//Monitoring
 	.monitor_strb(p1_mon_strb),					//Monitoring
 	.count1(p1_mon_count1),							//Monitoring
 	.count2(p1_mon_count2),							//Monitoring
@@ -593,9 +614,9 @@ adc_block p1_adc_block(
 	.adc_data_delay_ce(adc1_data_delay_ce)
 );
 
-parameter ch1_bitflip = 13'b1011010000101;
-parameter ch2_bitflip = 13'b0101110001000;
-parameter ch3_bitflip = 13'b0001011110100;
+parameter ch1_bitflip = ~13'b1011010000101;
+parameter ch2_bitflip = ~13'b0101110001000;
+parameter ch3_bitflip = ~13'b0001011110100;
 (* shreg_extract = "no" *) reg [4:0] bank1_sr_tap_a = 5'd2, bank1_sr_tap_b = 5'd2, bank1_sr_tap_c = 5'd2;
 reg [1:0] bank1_sr_bypass = 2'b11;
 
@@ -817,9 +838,9 @@ adc_block p2_adc_block(
 	//.ch2_data_out(p2_ydif_data),
 	//.ch3_data_out(p2_sum_data),
 	.saturated(p2_mon_saturated),
-	.total_data_delay(p2_mon_total_data_del),	//Monitoring
-	.total_drdy_delay(p2_mon_total_drdy_del), //Monitoring
-	.delay_mod(p2_mon_delay_mod),					//Monitoring
+	.adc_data_delay(p2_mon_total_data_del),	//Monitoring
+	.adc_drdy_delay(p2_mon_total_drdy_del), //Monitoring
+	.delay_modifier(p2_mon_delay_mod),					//Monitoring
 	.monitor_strb(p2_mon_strb),					//Monitoring
 	.count1(p2_mon_count1),							//Monitoring
 	.count2(p2_mon_count2),							//Monitoring
@@ -831,9 +852,9 @@ adc_block p2_adc_block(
 	.adc_data_delay_ce(adc2_data_delay_ce)
 );
 
-parameter ch4_bitflip = 13'b0111100000000;
-parameter ch5_bitflip = 13'b0100110011010;
-parameter ch6_bitflip = 13'b1111111010110;
+parameter ch4_bitflip = ~13'b0111100000000;
+parameter ch5_bitflip = ~13'b0100110011010;
+parameter ch6_bitflip = ~13'b1111111010110;
 (* shreg_extract = "no" *) reg [4:0] bank2_sr_tap_a = 5'd2, bank2_sr_tap_b = 5'd2, bank2_sr_tap_c = 5'd2;
 reg [1:0] bank2_sr_bypass = 2'b11;
 
@@ -1020,9 +1041,9 @@ adc_block p3_adc_block(
 	//.ch2_data_out(p3_ydif_data),
 	//.ch3_data_out(p3_sum_data),
 	.saturated(p3_mon_saturated),
-	.total_data_delay(p3_mon_total_data_del),	//Monitoring
-	.total_drdy_delay(p3_mon_total_drdy_del), //Monitoring
-	.delay_mod(p3_mon_delay_mod),					//Monitoring
+	.adc_data_delay(p3_mon_total_data_del),	//Monitoring
+	.adc_drdy_delay(p3_mon_total_drdy_del), //Monitoring
+	.delay_modifier(p3_mon_delay_mod),					//Monitoring
 	.monitor_strb(p3_mon_strb),					//Monitoring
 	.count1(p3_mon_count1),							//Monitoring
 	.count2(p3_mon_count2),							//Monitoring
@@ -1034,9 +1055,9 @@ adc_block p3_adc_block(
 	.adc_data_delay_ce(adc3_data_delay_ce)
 );
 
-parameter ch7_bitflip = 13'b0001101000010;
-parameter ch8_bitflip = 13'b1000011100001;
-parameter ch9_bitflip = 13'b0001001111010;
+parameter ch7_bitflip = ~13'b0001101000010;
+parameter ch8_bitflip = ~13'b1000011100001;
+parameter ch9_bitflip = ~13'b0001001111010;
 (* shreg_extract = "no" *) reg [4:0] bank3_sr_tap_a = 5'd2, bank3_sr_tap_b = 5'd2, bank3_sr_tap_c = 5'd2;
 reg [1:0] bank3_sr_bypass = 2'b11;
 
@@ -1246,7 +1267,7 @@ wire digIn1_uart = (use_trigSyncExt) ? 1'b0 : diginput1;
 wire uart2_byte_rdy, uart2_rx_unload;
 wire [7:0] uart2_rx_data;
 
-uart2_rx #(8, 9600) uart2_rx (	
+/*uart2_rx #(8, 9600) uart2_rx (	
 	.reset(dcm200_rst),
 	.clk(clk40_ibufg),
 	.uld_rx_data(uart2_rx_unload),
@@ -1254,9 +1275,19 @@ uart2_rx #(8, 9600) uart2_rx (
 	.rx_data(uart2_rx_data),
 	.rx_in(digIn1_uart),
 	.byte_rdy(uart2_byte_rdy)
-);
+);*/
 
-uart_unload #(.BYTE_WIDTH(8),.WORD_WIDTH(13)) uart2_uld (.rst(dcm200_rst), .clk(clk40_ibufg), .byte_rdy(uart2_byte_rdy), .unload_uart(uart2_rx_unload));
+uart3_rx uart3_rx (	
+	//.reset(dcm200_rst),
+	.clk(clk357),
+	.uld_rx_data(uart2_rx_unload),
+	//.rx_enable(1'b1),
+	.rx_data(uart2_rx_data),
+	.rx_in(digIn1_uart),
+	.byte_rdy(uart2_byte_rdy)
+);
+//uart_unload #(.BYTE_WIDTH(8),.WORD_WIDTH(13)) uart2_uld (.rst(dcm200_rst), .clk(clk40_ibufg), .byte_rdy(uart2_byte_rdy), .unload_uart(uart2_rx_unload));
+uart_unload #(.BYTE_WIDTH(8),.WORD_WIDTH(13)) uart2_uld (.rst(dcm200_rst), .clk(clk357), .byte_rdy(uart2_byte_rdy), .unload_uart(uart2_rx_unload));
 
 wire [12:0] k1constDAC = (constDAC1UARTor) ? {uart2_rx_data, 5'd0} : k1_const;
 wire [12:0] k2constDAC = (constDAC2UARTor) ? {uart2_rx_data, 5'd0} : k2_const;
@@ -2066,7 +2097,13 @@ assign auxOutC = syncOut;
 // as part of the DAQ
 // 357MHz signals registered to aid timing
 wire [6:0] status;
-reg pll_clk357_locked_a = 1'b0, dcm200_locked_a = 1'b0, idelayctrl_rdy_a = 1'b0, dcm360_locked_a = 1'b0; //clk_align_a, clk_align_b;
+reg dcm200_locked_a = 1'b0, idelayctrl_rdy_a = 1'b0; //clk_align_a, clk_align_b;
+`ifdef CLK357_PLL
+	reg pll_clk357_locked_a = 1'b0;
+`endif
+`ifdef FASTCLK_INT
+	reg dcm360_locked_a = 1'b0;
+`endif
 //reg pll_clk357_locked_a, idelayctrl_rdy_a; //clk_align_a, clk_align_b;
 
 reg rst_state_a = 1'b1, oflowDet =  1'b0, loop_oflowDet_b = 1'b0;
@@ -2076,27 +2113,37 @@ wire oflow_state;
 always @(posedge clk357) begin
 	loop_oflowDet_b <= loop_oflowDet;
 	oflowDet <= (loop_oflowDet_b | bank1_oflowDet | bank2_oflowDet | bank3_oflowDet);
-	pll_clk357_locked_a <= pll_clk357_locked;
+	`ifdef CLK357_PLL
+		pll_clk357_locked_a <= pll_clk357_locked;
+	`endif
 	dcm200_locked_a <= dcm200_locked;
-	dcm360_locked_a <= dcm360_locked;
+	`ifdef FASTCLK_INT
+		dcm360_locked_a <= dcm360_locked;
+	`endif
 	idelayctrl_rdy_a <= idelayctrl_rdy;
 	//clk_align_a <= clk_align;
 	//clk_align_b <= clk_align_a;
 end
-assign status = {pll_clk357_locked_a, dcm200_locked_a, idelayctrl_rdy_a, led1_out, p3_mon_saturated, p2_mon_saturated, p1_mon_saturated};
-
+`ifdef CLK357_PLL
+	assign status = {pll_clk357_locked_a, dcm200_locked_a, idelayctrl_rdy_a, led1_out, p3_mon_saturated, p2_mon_saturated, p1_mon_saturated};
+`else
+	assign status = {1'b0, dcm200_locked_a, idelayctrl_rdy_a, led1_out, p3_mon_saturated, p2_mon_saturated, p1_mon_saturated};
+`endif
 //overflow_detector oflowDet1(clk357, poll_uart || dcm200_rst, oflowDet && TFSMstate[2], oflow_state);
 //overflow_detector oflowDet1(clk357, poll_uart || dcm200_rst, oflowDet, TFSMstate[2], oflow_state);
 overflow_detector oflowDet1(clk357, poll_uart || dcm200_rst, oflowDet, store_strb, oflow_state);
 
-
-(* equivalent_register_removal = "no", shreg_extract = "no" *) reg clkPLL_sel_b, clkPLL_sel_c;
+`ifdef CLK357_PLL
+	(* equivalent_register_removal = "no", shreg_extract = "no" *) reg clkPLL_sel_b, clkPLL_sel_c;
+`endif
 always @(posedge clk40) begin
 	oflow_state_a <= oflow_state;
 	rst_state_a <= rst_state;
-	clkPLL_sel_c <= ~clkPLL_sel;
-	clkPLL_sel_b <= clkPLL_sel_c;
-	clkPLL_sel_a <= clkPLL_sel_b;
+	`ifdef CLK357_PLL
+		clkPLL_sel_c <= ~clkPLL_sel;
+		clkPLL_sel_b <= clkPLL_sel_c;
+		clkPLL_sel_a <= clkPLL_sel_b;
+	`endif
 	end
 
 monitor_readback monitor_readback1 (
@@ -2112,7 +2159,11 @@ monitor_readback monitor_readback1 (
 	.rb1(p1_mon_count1),
 	.rb2(p1_mon_count2),
 	.rb3(p1_mon_count3),
-	.rb4({dcm360_locked_a, p1_mon_total_data_del}),
+	`ifdef FASTCLK_INT
+		.rb4({dcm360_locked_a, p1_mon_total_data_del}),
+	`else
+		.rb4({1'b0, p1_mon_total_data_del}),
+	`endif
 	//.rb4({clk_align_b, p1_mon_total_data_del}),
 	.rb5(p2_mon_count1),
 	.rb6(p2_mon_count2),

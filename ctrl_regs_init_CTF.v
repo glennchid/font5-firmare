@@ -51,7 +51,7 @@ initial begin
 		ctrl_regs[97] = 7'd56; // 3 high in 4
 		ctrl_regs[110] = 7'd0; ///DigInA threshold
 		ctrl_regs[111] = 7'd7; ///DigInB threshold		
-		ctrl_regs[119] = 7'b0111110; // top seven bits of ten-bit decimal "164"
+		ctrl_regs[119] = 7'b0111110; // top seven bits of ten-bit decimal "164" // "500"
 		ctrl_regs[120] = 7'b1001111; // [bottom three bits of above,  top four bits of channel select (ones hot)]
 		ctrl_regs[121] = 7'b1111100; // [bottom five bits of channel select (ones hot), top two bits of eight-bit decimal "164"
 		ctrl_regs[122] = 7'b0000000; // [bottom six bits of above, trigSync_ext (ie. ring clock) enable]

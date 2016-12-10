@@ -8,12 +8,12 @@ initial begin
 		
 		ctrl_regs[37]=7'd32;//32;
 		ctrl_regs[38]=7'd0;//32;
-		ctrl_regs[39]=7'd94; // if use_strobes enabled must multiply by 2 -- max decimal = 127
-		ctrl_regs[40]=7'b0110000;
-		ctrl_regs[41]=7'b0010100;
+		ctrl_regs[39]=7'd93; // if use_strobes enabled must multiply by 2 -- max decimal = 127  WAS 7'd94
+		ctrl_regs[40]=7'b1100000; // {3'd3, 4'd0} was 7'b0110000
+		ctrl_regs[41]=7'b0110111; // {7'd20} * 8 = 160 + 3 = 163!! was 7'b0010100
 		
 		ctrl_regs[43] = 7'd1;        	// FF-on
-		ctrl_regs[44] = 7'd0;			// Const DAC on
+		ctrl_regs[44] = 7'd2;			// Const DAC on
 		ctrl_regs[46] = 7'b0010000; 	// K1 const DAC = +4095
 		ctrl_regs[47] = 7'd0;			// DAC1 phase
 		ctrl_regs[48] = 7'd0;			// DAC2 phase
@@ -23,8 +23,8 @@ initial begin
 		ctrl_regs[51] = 7'b1101100; 	// ch1 and ch2 IIR filters on
 		ctrl_regs[52] = 7'b0110000;
 		ctrl_regs[111]=3'd7;				// Trigger threshold code
-		ctrl_regs[119] = 7'b0010100; // top seven bits of ten-bit decimal "164" - # samples
-		ctrl_regs[120] = 7'b1001111; // [bottom three bits of above,  top four bits of channel select (ones hot)]
+		ctrl_regs[119] = 7'b1111101; // top seven bits of ten-bit decimal "164" - # samples  WAS 7'b0010100
+		ctrl_regs[120] = 7'b0001111; // [bottom three bits of above,  top four bits of channel select (ones hot)]  WAS 7'b0001111
 		ctrl_regs[121] = 7'b1111110; // [bottom five bits of channel select (ones hot), top two bits of eight-bit decimal "164"
 		ctrl_regs[122] = 7'b1001000; // [bottom six bits of above, trigSync_ext (ie. ring clock) enable]
 		ctrl_regs[123] = 7'd1; 			// Run mode
@@ -37,6 +37,7 @@ initial begin
 		ctrl_regs_mem[40]=7'b0110000;
 		ctrl_regs_mem[41]=7'b0010100;
 		ctrl_regs_mem[43] = 7'd1;        	// FF-on
+		ctrl_regs_mem[44] = 7'd2;			// Const DAC on
 		ctrl_regs_mem[47] = 7'd0;			// DAC1 phase
 		ctrl_regs_mem[48] = 7'd0;			// DAC2 phase
 		ctrl_regs_mem[49] = -7'sd64;			// K1 gain
@@ -53,20 +54,24 @@ initial begin
 
 
 	`else
-		//ctrl_regs[51] = 7'd2;
+		ctrl_regs[51] = 7'd2; //Internal triggering disable
+		ctrl_regs[96] = 7'd16; // CLK357-PLL bypass OFF
 		ctrl_regs[111]=3'd7;
 		ctrl_regs[119] = 7'b0010100; // top seven bits of ten-bit decimal "164"
 		ctrl_regs[120] = 7'b1001111; // [bottom three bits of above,  top four bits of channel select (ones hot)]
 		ctrl_regs[121] = 7'b1111110; // [bottom five bits of channel select (ones hot), top two bits of eight-bit decimal "164"
 		ctrl_regs[122] = 7'b1001001; // [bottom six bits of above, trigSync_ext (ie. ring clock) enable]
+		ctrl_regs[123] = 7'd1; 			// Run mode enabled
 		ctrl_regs[124] = 7'b0001101; // diodeGating = 1; oflowMode = 2(saturate); useDiode = 1;
 
-		//ctrl_regs_mem[51] = 7'd2;
+		ctrl_regs_mem[51] = 7'd2; // Internal triggering disable READBACK
+		ctrl_regs[96] = 7'd16; // CLK357-PLL bypass ON READBACK
 		ctrl_regs_mem[111]=3'd7;
 		ctrl_regs_mem[119] = 7'b0010100; // top seven bits of ten-bit decimal "164"
 		ctrl_regs_mem[120] = 7'b1001111; // [bottom three bits of above,  top four bits of channel select (ones hot)]
 		ctrl_regs_mem[121] = 7'b1111110; // [bottom five bits of channel select (ones hot), top two bits of eight-bit decimal "164"
 		ctrl_regs_mem[122] = 7'b1001000; // [bottom six bits of above, trigSync_ext (ie. ring clock) enable]
+		ctrl_regs_mem[123] = 7'd1; 			// Run mode enabled READBACK
 		ctrl_regs_mem[124] = 7'b0001101; // diodeGating = 1; oflowMode = 2(saturate); useDiode = 1;
 	`endif
 	end

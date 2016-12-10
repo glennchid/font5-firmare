@@ -116,19 +116,24 @@ module FONT5_base_xlnx(
 //assign dac3_clk = dac1_clk;
 //assign dac4_clk = dac2_clk;
 
+//`define FASTCLK_INT
+
+//`define CLK357_PLL
 
 supply0 gnd;
 supply1 vcc;
 //signal declarations for slow clock (on-board oscillator)
-wire clk40_ibufg, dcm200_rst, clk200, clk40_dcm, dcm200_locked, clk40_blk, idelayctrl_rdy;
+wire clk40_ibufg, clk200, clk40_dcm, dcm200_locked, clk40_blk, idelayctrl_rdy;
 //(* clock_buffer = "BUFG" *) wire clk40;
 wire clk40;
 //signal declarations for fast clock (external) 
 //(* clock_buffer = "BUFG" *) wire clk357_delayed;
 //wire clk357_delayed;
-wire clk357_ibufg, pll_clk357_fb, pll_clk357_locked, clk357_bufg, clk357_delayed;
+wire clk357_ibufg, clk357_bufg, clk357_delayed;
+`ifdef CLK357_PLL
+	wire pll_clk357_fb, pll_clk357_locked, clk357_pll;
+`endif
 //(* clock_buffer = "BUFG" *) wire clk357_pll; 
-wire clk357_pll; 
 wire clk357_idelay_ce, clk357_idelay_rst, idelay_rst;
 //(* clock_buffer = "BUFGMUX" *) wire clk357;
 wire clk357;
@@ -192,34 +197,33 @@ IDELAYCTRL IDELAYCTRL1 (
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%   357MHz INPUT   %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-wire fastClk_int, dcm360_locked;
-//(* clock_buffer = "BUFG" *) wire fastClk_ext;
 wire fastClk_ext;
+`ifdef FASTCLK_INT
+	wire fastClk_int, dcm360_locked;
+	//(* clock_buffer = "BUFG" *) wire fastClk_ext;
+
+	//Internal clock DCM
+	DCM2 DCM360(
+		 .CLKIN_IN(clk40_ibufg), 
+		 //.RST_IN(dcm200_rst), 
+		 .RST_IN(config_rst),
+		 .CLKFX_OUT(fastClk_int), 
+		 .CLK0_OUT(), 
+		 .LOCKED_OUT(dcm360_locked)
+		 );
 
 
+	// **** Differential input buffer for the master 357MHz clock ****
+	/*IBUFGDS #(
+		.DIFF_TERM("TRUE"),
+		.IOSTANDARD("DEFAULT")
+	) IBUFGDS_CLK357 (
+		.O(clk357_ibufg), 
+		.I(clk357_p),
+		.IB(clk357_n)
+	);*/
 
-//Internal clock DCM
-DCM2 DCM360(
-    .CLKIN_IN(clk40_ibufg), 
-    //.RST_IN(dcm200_rst), 
-	 .RST_IN(config_rst),
-    .CLKFX_OUT(fastClk_int), 
-    .CLK0_OUT(), 
-    .LOCKED_OUT(dcm360_locked)
-    );
-
-
-// **** Differential input buffer for the master 357MHz clock ****
-/*IBUFGDS #(
-	.DIFF_TERM("TRUE"),
-	.IOSTANDARD("DEFAULT")
-) IBUFGDS_CLK357 (
-	.O(clk357_ibufg), 
-	.I(clk357_p),
-	.IB(clk357_n)
-);*/
-
-
+`endif
 
 IBUFDS #(	//changed to IBUFDS - 16/3/15
 	.DIFF_TERM("TRUE"),
@@ -230,130 +234,135 @@ IBUFDS #(	//changed to IBUFDS - 16/3/15
 	.IB(clk357_n)
 );
 
-//Instance pll_clkSwitch
-//wire fastClk_sel, clkSwitch_out, pll_rst;
-//pll_clkSwitch clkSwitch1(clk40, fastClk_sel, clkSwitch_out, pll_rst); //Custom-VCD on fastClk_sel
+`ifdef CLK357_PLL
+	wire dcm200_rst;
+	//Instance pll_clkSwitch
+	//wire fastClk_sel, clkSwitch_out, pll_rst;
+	//pll_clkSwitch clkSwitch1(clk40, fastClk_sel, clkSwitch_out, pll_rst); //Custom-VCD on fastClk_sel
 
 
-// **** PLL for master 357MHz clock ****
-// Configured as a jitter filter (low bandwidth, internal feedback)
-// VCO frequency 2*357MHz
-// Output via global clock buffer as required
-PLL_BASE #(
-	.BANDWIDTH("LOW"), //Better jitter filter performance (V5 user guide)
-	.CLKFBOUT_MULT(2),
-	.CLKFBOUT_PHASE(0.0),
-	.CLKIN_PERIOD(2.8), // ns
-	.CLKOUT0_DIVIDE(2),
-	.CLKOUT0_DUTY_CYCLE(0.5),
-	.CLKOUT0_PHASE(0.0), 
-	.CLKOUT1_DIVIDE(1), 
-	.CLKOUT1_DUTY_CYCLE(0.5), 
-	.CLKOUT1_PHASE(0.0),
-	.CLKOUT2_DIVIDE(1), 
-	.CLKOUT2_DUTY_CYCLE(0.5), 
-	.CLKOUT2_PHASE(0.0),
-	.CLKOUT3_DIVIDE(1),
-	.CLKOUT3_DUTY_CYCLE(0.5),
-	.CLKOUT3_PHASE(0.0), 
-	.CLKOUT4_DIVIDE(1),
-	.CLKOUT4_DUTY_CYCLE(0.5),
-	.CLKOUT4_PHASE(0.0),
-	.CLKOUT5_DIVIDE(1),
-	.CLKOUT5_DUTY_CYCLE(0.5),
-	.CLKOUT5_PHASE(0.0),
-	.COMPENSATION("SYSTEM_SYNCHRONOUS"),
-	.DIVCLK_DIVIDE(1),
-	.REF_JITTER(0.100) // Input reference jitter *LEFT AT DEFAULT*
-) PLL_CLK357 (
-	.CLKFBOUT(pll_clk357_fb), 	// Internal feedback signal
-	.CLKOUT0(clk357_pll),
-	//.CLKOUT0(fastClk_ext),
-	.CLKOUT1(),
-	.CLKOUT2(),
-	.CLKOUT3(),
-	.CLKOUT4(),
-	.CLKOUT5(),
-	.LOCKED(pll_clk357_locked),
-	.CLKFBIN(pll_clk357_fb), 	// Internal feedback signal
-	//.CLKIN(clk357_ibufg),
-	.CLKIN(clk357_bufg),
-	//.CLKIN(clk357_delayed),
-	.RST(dcm200_rst)
-);
+	// **** PLL for master 357MHz clock ****
+	// Configured as a jitter filter (low bandwidth, internal feedback)
+	// VCO frequency 2*357MHz
+	// Output via global clock buffer as required
+	PLL_BASE #(
+		.BANDWIDTH("LOW"), //Better jitter filter performance (V5 user guide)
+		.CLKFBOUT_MULT(2),
+		.CLKFBOUT_PHASE(0.0),
+		.CLKIN_PERIOD(2.8), // ns
+		.CLKOUT0_DIVIDE(2),
+		.CLKOUT0_DUTY_CYCLE(0.5),
+		.CLKOUT0_PHASE(0.0), 
+		.CLKOUT1_DIVIDE(1), 
+		.CLKOUT1_DUTY_CYCLE(0.5), 
+		.CLKOUT1_PHASE(0.0),
+		.CLKOUT2_DIVIDE(1), 
+		.CLKOUT2_DUTY_CYCLE(0.5), 
+		.CLKOUT2_PHASE(0.0),
+		.CLKOUT3_DIVIDE(1),
+		.CLKOUT3_DUTY_CYCLE(0.5),
+		.CLKOUT3_PHASE(0.0), 
+		.CLKOUT4_DIVIDE(1),
+		.CLKOUT4_DUTY_CYCLE(0.5),
+		.CLKOUT4_PHASE(0.0),
+		.CLKOUT5_DIVIDE(1),
+		.CLKOUT5_DUTY_CYCLE(0.5),
+		.CLKOUT5_PHASE(0.0),
+		.COMPENSATION("SYSTEM_SYNCHRONOUS"),
+		.DIVCLK_DIVIDE(1),
+		.REF_JITTER(0.100) // Input reference jitter *LEFT AT DEFAULT*
+	) PLL_CLK357 (
+		.CLKFBOUT(pll_clk357_fb), 	// Internal feedback signal
+		.CLKOUT0(clk357_pll),
+		//.CLKOUT0(fastClk_ext),
+		.CLKOUT1(),
+		.CLKOUT2(),
+		.CLKOUT3(),
+		.CLKOUT4(),
+		.CLKOUT5(),
+		.LOCKED(pll_clk357_locked),
+		.CLKFBIN(pll_clk357_fb), 	// Internal feedback signal
+		//.CLKIN(clk357_ibufg),
+		.CLKIN(clk357_bufg),
+		//.CLKIN(clk357_delayed),
+		.RST(dcm200_rst)
+	);
 
-// PLL_ADV: Phase-Lock Loop Clock Circuit 
-   //          Virtex-5
-   // Xilinx HDL Language Template, version 14.7
-   
-/*   PLL_ADV #(
-      .BANDWIDTH("OPTIMIZED"),  // "HIGH", "LOW" or "OPTIMIZED" 
-      .CLKFBOUT_MULT(2),        // Multiplication factor for all output clocks
-      .CLKFBOUT_PHASE(0.0),     // Phase shift (degrees) of all output clocks
-      .CLKIN1_PERIOD(2.800),    // Clock period (ns) of input clock on CLKIN1
-      .CLKIN2_PERIOD(2.778),    // Clock period (ns) of input clock on CLKIN2
-      .CLKOUT0_DIVIDE(1),       // Division factor for CLKOUT0 (1 to 128)
-      .CLKOUT0_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT0 (0.01 to 0.99)
-      .CLKOUT0_PHASE(0.0),      // Phase shift (degrees) for CLKOUT0 (0.0 to 360.0)
-      .CLKOUT1_DIVIDE(1),       // Division factor for CLKOUT1 (1 to 128)
-      .CLKOUT1_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT1 (0.01 to 0.99)
-      .CLKOUT1_PHASE(0.0),      // Phase shift (degrees) for CLKOUT1 (0.0 to 360.0)
-      .CLKOUT2_DIVIDE(1),       // Division factor for CLKOUT2 (1 to 128)
-      .CLKOUT2_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT2 (0.01 to 0.99)
-      .CLKOUT2_PHASE(0.0),      // Phase shift (degrees) for CLKOUT2 (0.0 to 360.0)
-      .CLKOUT3_DIVIDE(1),       // Division factor for CLKOUT3 (1 to 128)
-      .CLKOUT3_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT3 (0.01 to 0.99)
-      .CLKOUT3_PHASE(0.0),      // Phase shift (degrees) for CLKOUT3 (0.0 to 360.0)
-      .CLKOUT4_DIVIDE(1),       // Division factor for CLKOUT4 (1 to 128)
-      .CLKOUT4_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT4 (0.01 to 0.99)
-      .CLKOUT4_PHASE(0.0),      // Phase shift (degrees) for CLKOUT4 (0.0 to 360.0)
-      .CLKOUT5_DIVIDE(1),       // Division factor for CLKOUT5 (1 to 128)
-      .CLKOUT5_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT5 (0.01 to 0.99)
-      .CLKOUT5_PHASE(0.0),      // Phase shift (degrees) for CLKOUT5 (0.0 to 360.0)
-      .COMPENSATION("SYSTEM_SYNCHRONOUS"), // "SYSTEM_SYNCHRONOUS", 
-                                //   "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", 
-                                //   "DCM2PLL", "PLL2DCM" 
-      .DIVCLK_DIVIDE(1),        // Division factor for all clocks (1 to 52)
-      .EN_REL("FALSE"),         // Enable release (PMCD mode only)
-      .PLL_PMCD_MODE("FALSE"),  // PMCD Mode, TRUE/FASLE
-      .REF_JITTER(0.100),       // Input reference jitter (0.000 to 0.999 UI%)
-      .RST_DEASSERT_CLK("CLKIN1") // In PMCD mode, clock to synchronize RST release
-   ) PLL_ADV_inst (
-      .CLKFBDCM(),      // Output feedback signal used when PLL feeds a DCM
-      .CLKFBOUT(pll_clk357_fb),      // General output feedback signal
-      .CLKOUT0(clk357_pll),        // One of six general clock output signals
-      .CLKOUT1(),        // One of six general clock output signals
-      .CLKOUT2(),        // One of six general clock output signals
-      .CLKOUT3(),        // One of six general clock output signals
-      .CLKOUT4(),        // One of six general clock output signals
-      .CLKOUT5(),        // One of six general clock output signals
-      .CLKOUTDCM0(),  // One of six clock outputs to connect to the DCM
-      .CLKOUTDCM1(),  // One of six clock outputs to connect to the DCM
-      .CLKOUTDCM2(),  // One of six clock outputs to connect to the DCM
-      .CLKOUTDCM3(),  // One of six clock outputs to connect to the DCM
-      .CLKOUTDCM4(),  // One of six clock outputs to connect to the DCM
-      .CLKOUTDCM5(),  // One of six clock outputs to connect to the DCM
-      .DO(),                  // Dynamic reconfig data output (16-bits)
-      .DRDY(),              // Dynamic reconfig ready output
-      .LOCKED(pll_clk357_locked),          // Active high PLL lock signal
-      .CLKFBIN(pll_clk357_fb),        // Clock feedback input
-      .CLKIN1(clk357_ibufg),          // Primary clock input
-      .CLKIN2(fastClk_int),          // Secondary clock input
-      .CLKINSEL(clkSwitch_out),      // Selects '1' = CLKIN1, '0' = CLKIN2
-      .DADDR(),            // Dynamic reconfig address input (5-bits)
-      .DCLK(),              // Dynamic reconfig clock input
-      .DEN(),                // Dynamic reconfig enable input
-      .DI(),                  // Dynamic reconfig data input (16-bits)
-      .DWE(),                // Dynamic reconfig write enable input
-      .REL(),                // Clock release input (PMCD mode only)
-      .RST(pll_rst | dcm200_rst)                 // Asynchronous PLL reset
-   );*/
+	// PLL_ADV: Phase-Lock Loop Clock Circuit 
+		//          Virtex-5
+		// Xilinx HDL Language Template, version 14.7
+		
+	/*   PLL_ADV #(
+			.BANDWIDTH("OPTIMIZED"),  // "HIGH", "LOW" or "OPTIMIZED" 
+			.CLKFBOUT_MULT(2),        // Multiplication factor for all output clocks
+			.CLKFBOUT_PHASE(0.0),     // Phase shift (degrees) of all output clocks
+			.CLKIN1_PERIOD(2.800),    // Clock period (ns) of input clock on CLKIN1
+			.CLKIN2_PERIOD(2.778),    // Clock period (ns) of input clock on CLKIN2
+			.CLKOUT0_DIVIDE(1),       // Division factor for CLKOUT0 (1 to 128)
+			.CLKOUT0_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT0 (0.01 to 0.99)
+			.CLKOUT0_PHASE(0.0),      // Phase shift (degrees) for CLKOUT0 (0.0 to 360.0)
+			.CLKOUT1_DIVIDE(1),       // Division factor for CLKOUT1 (1 to 128)
+			.CLKOUT1_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT1 (0.01 to 0.99)
+			.CLKOUT1_PHASE(0.0),      // Phase shift (degrees) for CLKOUT1 (0.0 to 360.0)
+			.CLKOUT2_DIVIDE(1),       // Division factor for CLKOUT2 (1 to 128)
+			.CLKOUT2_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT2 (0.01 to 0.99)
+			.CLKOUT2_PHASE(0.0),      // Phase shift (degrees) for CLKOUT2 (0.0 to 360.0)
+			.CLKOUT3_DIVIDE(1),       // Division factor for CLKOUT3 (1 to 128)
+			.CLKOUT3_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT3 (0.01 to 0.99)
+			.CLKOUT3_PHASE(0.0),      // Phase shift (degrees) for CLKOUT3 (0.0 to 360.0)
+			.CLKOUT4_DIVIDE(1),       // Division factor for CLKOUT4 (1 to 128)
+			.CLKOUT4_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT4 (0.01 to 0.99)
+			.CLKOUT4_PHASE(0.0),      // Phase shift (degrees) for CLKOUT4 (0.0 to 360.0)
+			.CLKOUT5_DIVIDE(1),       // Division factor for CLKOUT5 (1 to 128)
+			.CLKOUT5_DUTY_CYCLE(0.5), // Duty cycle for CLKOUT5 (0.01 to 0.99)
+			.CLKOUT5_PHASE(0.0),      // Phase shift (degrees) for CLKOUT5 (0.0 to 360.0)
+			.COMPENSATION("SYSTEM_SYNCHRONOUS"), // "SYSTEM_SYNCHRONOUS", 
+											  //   "SOURCE_SYNCHRONOUS", "INTERNAL", "EXTERNAL", 
+											  //   "DCM2PLL", "PLL2DCM" 
+			.DIVCLK_DIVIDE(1),        // Division factor for all clocks (1 to 52)
+			.EN_REL("FALSE"),         // Enable release (PMCD mode only)
+			.PLL_PMCD_MODE("FALSE"),  // PMCD Mode, TRUE/FASLE
+			.REF_JITTER(0.100),       // Input reference jitter (0.000 to 0.999 UI%)
+			.RST_DEASSERT_CLK("CLKIN1") // In PMCD mode, clock to synchronize RST release
+		) PLL_ADV_inst (
+			.CLKFBDCM(),      // Output feedback signal used when PLL feeds a DCM
+			.CLKFBOUT(pll_clk357_fb),      // General output feedback signal
+			.CLKOUT0(clk357_pll),        // One of six general clock output signals
+			.CLKOUT1(),        // One of six general clock output signals
+			.CLKOUT2(),        // One of six general clock output signals
+			.CLKOUT3(),        // One of six general clock output signals
+			.CLKOUT4(),        // One of six general clock output signals
+			.CLKOUT5(),        // One of six general clock output signals
+			.CLKOUTDCM0(),  // One of six clock outputs to connect to the DCM
+			.CLKOUTDCM1(),  // One of six clock outputs to connect to the DCM
+			.CLKOUTDCM2(),  // One of six clock outputs to connect to the DCM
+			.CLKOUTDCM3(),  // One of six clock outputs to connect to the DCM
+			.CLKOUTDCM4(),  // One of six clock outputs to connect to the DCM
+			.CLKOUTDCM5(),  // One of six clock outputs to connect to the DCM
+			.DO(),                  // Dynamic reconfig data output (16-bits)
+			.DRDY(),              // Dynamic reconfig ready output
+			.LOCKED(pll_clk357_locked),          // Active high PLL lock signal
+			.CLKFBIN(pll_clk357_fb),        // Clock feedback input
+			.CLKIN1(clk357_ibufg),          // Primary clock input
+			.CLKIN2(fastClk_int),          // Secondary clock input
+			.CLKINSEL(clkSwitch_out),      // Selects '1' = CLKIN1, '0' = CLKIN2
+			.DADDR(),            // Dynamic reconfig address input (5-bits)
+			.DCLK(),              // Dynamic reconfig clock input
+			.DEN(),                // Dynamic reconfig enable input
+			.DI(),                  // Dynamic reconfig data input (16-bits)
+			.DWE(),                // Dynamic reconfig write enable input
+			.REL(),                // Clock release input (PMCD mode only)
+			.RST(pll_rst | dcm200_rst)                 // Asynchronous PLL reset
+		);*/
 
-BUFG BUFG_PLL_CLK357 (
-	.O(clk357_bufg),
-	//.I(clk357_pll)
-	.I(clk357_delayed)
-);
+	BUFG BUFG_PLL_CLK357 (
+		.O(clk357_bufg),
+		//.I(clk357_pll)
+		.I(clk357_delayed)
+	);
+`else
+	assign clk357_bufg = clk357_delayed;
+`endif
 
 // **** IDELAY for the master 357MHz clock ****
 
@@ -393,27 +402,38 @@ IODELAY # (
 	.I(clk357_pll)
 );
 */
-wire clkPLL_sel;
 
-BUFGMUX_CTRL BUFG_CLK357 (
-      .O(fastClk_ext),    // Clock MUX output
-      .I0(clk357_pll),  // Clock0 input
-		//.I0(clk357_delayed),  // Clock0 input
-      .I1(clk357_bufg),  // Clock1 input
-      .S(clkPLL_sel)     // Clock select input
-		//.S(1'b0)     // Clock select input
-   );
+`ifdef CLK357_PLL
+	wire clkPLL_sel;
 
-//wire fastClk_sel;
+	BUFGMUX_CTRL BUFG_CLK357 (
+			.O(fastClk_ext),    // Clock MUX output
+			.I0(clk357_pll),  // Clock0 input
+			//.I0(clk357_delayed),  // Clock0 input
+			.I1(clk357_bufg),  // Clock1 input
+			.S(clkPLL_sel)     // Clock select input
+			//.S(1'b0)     // Clock select input
+		);
+`else
+	BUFG BUFG_CLK357 (
+	.O(fastClk_ext),
+	.I(clk357_bufg)
+	);
+`endif
 
-BUFGMUX_CTRL BUFGMUX_CTRL_inst (
-      .O(clk357),    // Clock MUX output
-      .I0(fastClk_ext),  // Clock0 input
-		//.I0(clk357_delayed),  // Clock0 input
-      .I1(fastClk_int),  // Clock1 input
-      .S(fastClk_sel)     // Clock select input
-   );
-	
+`ifdef FASTCLK_INT
+	wire fastClk_sel;
+
+	BUFGMUX_CTRL BUFGMUX_CTRL_inst (
+			.O(clk357),    // Clock MUX output
+			.I0(fastClk_ext),  // Clock0 input
+			//.I0(clk357_delayed),  // Clock0 input
+			.I1(fastClk_int),  // Clock1 input
+			.S(fastClk_sel)     // Clock select input
+		);
+`else
+	assign clk357 = fastClk_ext;
+`endif	
 //assign clk357 = (fastClk_sel) ? fastClk_int : fastClk_ext; 
 
 //Instantiate IBUFDS and IODELAYs for the incoming DATA, DRDY, and ADC clocks
@@ -521,9 +541,11 @@ OBUFDS #(
 wire drdy1 = ch1_drdy_out; //to keep with the logical names for changing this dynamically
 wire drdy2 = ch4_drdy_out;
 wire drdy3 = ch7_drdy_out;
-
+wire iddr_ce;
+//wire dcm200_rst;
 
 // Instantiate the double data input in the IOB
+/*
 IDDR #(
 	.DDR_CLK_EDGE("OPPOSITE_EDGE"), 
 	.INIT_Q1(1'b0),
@@ -568,6 +590,51 @@ IDDR #(
 	.R(dcm200_rst),
 	.S(1'b0) 
 );
+*/
+IDDR #(
+	.DDR_CLK_EDGE("SAME_EDGE_PIPELINED"), 
+	.INIT_Q1(1'b0),
+	.INIT_Q2(1'b0),
+	.SRTYPE("SYNC")
+) DRDY_IDDR1 (
+	.Q1(IDDR1_Q1),
+	.Q2(IDDR1_Q2),
+	.C(clk357), 
+	.CE(iddr_ce), 
+	.D(drdy1),
+	.R(gnd),
+	.S(gnd) 
+);
+
+IDDR #(
+	.DDR_CLK_EDGE("SAME_EDGE_PIPELINED"), 
+	.INIT_Q1(1'b0),
+	.INIT_Q2(1'b0),
+	.SRTYPE("SYNC")
+) DRDY_IDDR2 (
+	.Q1(IDDR2_Q1),
+	.Q2(IDDR2_Q2),
+	.C(clk357), 
+	.CE(iddr_ce), 
+	.D(drdy2),
+	.R(gnd),
+	.S(gnd) 
+);
+
+IDDR #(
+	.DDR_CLK_EDGE("SAME_EDGE_PIPELINED"), 
+	.INIT_Q1(1'b0),
+	.INIT_Q2(1'b0),
+	.SRTYPE("SYNC")
+) DRDY_IDDR3 (
+	.Q1(IDDR3_Q1),
+	.Q2(IDDR3_Q2),
+	.C(clk357), 
+	.CE(iddr_ce), 
+	.D(drdy3),
+	.R(gnd),
+	.S(gnd) 
+);
 
 //Instance the auxOut selection module
 wire auxOutA, auxOutB;
@@ -592,14 +659,16 @@ FONT5_base FONT5_base_top (
 	 //.amp_trig(amp_trig),
 	 //.amp_trig2(amp_trig2),
     .adc_powerdown(adc_powerdown), 
+	 .iddr_ce(iddr_ce),
+	 //.dcm200_rst(dcm200_rst), //output to xlnx
 	 .dac1_out(dac1_out),
 	 .dac1_clk(dac1_clk),
 	 .dac2_out(dac2_out),
 	 .dac2_clk(dac2_clk),
-	 //.dac3_out(dac3_out),
-	 //.dac3_clk(dac3_clk),
-	 //.dac4_out(dac4_out),
-	 //.dac4_clk(dac4_clk),
+//	 .dac3_out(dac3_out),
+//	 .dac3_clk(dac3_clk),
+//	 .dac4_out(dac4_out),
+//	 .dac4_clk(dac4_clk),
     .rs232_out(rs232_out), 
     .led0_out(led0_out), 
     .led1_out(led1_out), 
@@ -616,17 +685,21 @@ FONT5_base FONT5_base_top (
     .auxOutA(auxOutA), 
     .auxOutB(auxOutB),
 	 //.diginput2_loopback(diginput2_loopback),
-	 .dcm200_rst(dcm200_rst), //output to xlnx
 	 .dcm200_locked(dcm200_locked), //input to top
 	 .clk_blk(clk40_blk), //output to xlnx
 	 .idelayctrl_rdy(idelayctrl_rdy), //input to top
-	 .pll_clk357_locked(pll_clk357_locked), //input to top
 	 .clk357_idelay_ce(clk357_idelay_ce), //output to xlnx
 	 .clk357_idelay_rst(clk357_idelay_rst), //output to xlnx
 	 .idelay_rst(idelay_rst), //output to xlnx
-	 .dcm360_locked(dcm360_locked), //input to top
-	 .fastClk_sel(fastClk_sel), //output to xlnx
-	 .clkPLL_sel_a(clkPLL_sel), // output to xlnx
+	 `ifdef FASTCLK_INT
+		 .dcm360_locked(dcm360_locked), //input to top
+		 .fastClk_sel(fastClk_sel), //output to xlnx
+	 `endif
+	 `ifdef CLK357_PLL
+	 	 .dcm200_rst(dcm200_rst), //output to xlnx
+		 .pll_clk357_locked(pll_clk357_locked), //input to top
+		 .clkPLL_sel_a(clkPLL_sel), // output to xlnx
+	 `endif
 	 .run(run), //output to xlnx
 	 .delay_calc_strb1(delay_calc_strb1), //output to xlnx from ADC_block
 	 .delay_calc_strb2(delay_calc_strb2), //output to xlnx from ADC_block

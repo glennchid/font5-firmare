@@ -66,10 +66,16 @@ module adc_block(
 		//output [12:0] ch2_data_out,
 		//output [12:0] ch3_data_out,
 		output saturated,
-		output [5:0] total_drdy_delay,		//Monitoring
-		output [5:0] total_data_delay,		//Monitoring
-		output [6:0] delay_mod,				//Monitoring
+		//output reg [5:0] adc_drdy_delay_out,		//Monitoring
+		//output reg [5:0] adc_data_delay_out,		//Monitoring
+		output [5:0] adc_drdy_delay,		//Monitoring
+		output [5:0] adc_data_delay,		//Monitoring
+		output [6:0] delay_modifier,				//Monitoring
 		output reg monitor_strb,			//Monitoring
+		//output reg [6:0] count1_out,					//Monitoring
+		//output reg [6:0] count2_out,					//Monitoring
+		//output reg [6:0] count3_out,					//Monitoring
+		//output reg [5:0] adc_clk_delay_mon_out,		//Monitoring
 		output [6:0] count1,					//Monitoring
 		output [6:0] count2,					//Monitoring
 		output [6:0] count3,					//Monitoring
@@ -116,11 +122,23 @@ assign ch3_data_out = {~ch3_data_in_a[12], ch3_data_in_a[11:0]};*/
 reg iodelay_cnt_trig;
 always @(posedge clk40) iodelay_cnt_trig <= (delay_calc_strb | delay_trig);
 //Do the same for the monitor strobe
+
 wire monitor_strb_in;
-always @(posedge clk40) monitor_strb <= monitor_strb_in;
+//wire align_end;
+//wire [6:0] count1, count2, count3;
+//wire [5:0] adc_drdy_delay, adc_clk_delay_mon, adc_data_delay;
+always @(posedge clk40) begin
+	monitor_strb <= monitor_strb_in;
+//	count1_out <= (align_end) ? count1 : count1_out;
+//	count2_out <= (align_end) ? count2 : count2_out;
+//	count3_out <= (align_end) ? count3 : count3_out;
+//	adc_drdy_delay_out <= (align_end) ? adc_drdy_delay : adc_drdy_delay_out;
+//	adc_clk_delay_mon_out <= (align_end) ? adc_clk_delay_mon : adc_clk_delay_mon_out;
+//	adc_data_delay_out <= (align_end) ? adc_data_delay : adc_data_delay_out; 
+end
 
 // *****  Instantiate the drdy delay incrementor  *****
-wire [5:0] adc_drdy_delay;
+//wire [5:0] adc_drdy_delay;
 iodelay_incrementor drdy_idelay_inc(
 	.clk40(clk40),
 	.rst(delay_calc_strb | delay_trig),			//This reset line goes high one cycle before the strb
@@ -145,8 +163,8 @@ iodelay_incrementor adc_clk_delay_inc(
 );
 
 //Instantiate the delay calculator
-wire [5:0] adc_data_delay;
-wire [6:0] delay_modifier;	
+//wire [5:0] adc_data_delay;
+//wire [6:0] delay_modifier;	
 delay_calc delay_calc1(
 	.clk40(clk40),
 	.rst(rst),
@@ -168,6 +186,7 @@ align_monitor align_mon1(
 	.align_en(align_en_a),
 	.Q1(IDDR_Q1),
 	.Q2(IDDR_Q2),
+	//.align_end(align_end),
 	.delay_modifier(delay_modifier),
 	.delay_mod_strb(delay_calc_strb),
 	.count1(count1),
@@ -177,11 +196,11 @@ align_monitor align_mon1(
 );
 
 // Output the delay modifier for monitoring
-assign delay_mod = delay_modifier;
+//assign delay_mod = delay_modifier;
 // Output actual data delay for monitoring
-assign total_data_delay = adc_data_delay;
+//assign total_data_delay = adc_data_delay;
 // Output drdy delay for monitoring
-assign total_drdy_delay = adc_drdy_delay;
+//assign total_drdy_delay = adc_drdy_delay;
 
 // *****  Instantiate the data delay incrementor  *****
 iodelay_incrementor data_idelay_inc(

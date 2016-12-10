@@ -7,7 +7,7 @@
 // \   \   \/     Version : 14.7
 //  \   \         Application : xaw2verilog
 //  /   /         Filename : DCM1.v
-// /___/   /\     Timestamp : 07/09/2015 13:19:01
+// /___/   /\     Timestamp : 11/15/2016 13:32:30
 // \   \  /  \ 
 //  \___\/\___\ 
 //

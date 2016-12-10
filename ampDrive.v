@@ -19,11 +19,20 @@ module ampDrive (
 	//(* IOB = "true" *) output reg signed [12:0] dout_copy = 13'd0, //For the sake of Iverilog!!
 	//(* IOB = "true" *) output reg DAC_en_copy  = 1'b0 //ditto !
 );
+`include "bits_to_fit.v"
+`define COMBINE // NB: Introduces a two-cycle delay 
+`define SUM_OUTPUT_SMPLS // NB: Introduces a one-cycle delay, or zero-cyle, see in macro-defined code below. PRESENTY ZERO-CYCLE!!
 
 //parameter offset_delay = 4'd8; //minimum latency 5 cycles with respect to store_strb in FF modules (2 from LUT & mult, 1 gain, 2 Ldelay)
 //parameter OFFSET_DELAY = 4'd7; //with respect to store_strb at Ldelay entrance (5 from "loop' module, 2 from gain, 1 from RAM_strobes, -2 from internal)
 parameter OFFSET_DELAY = 4'd8; //with respect to store_strb at Ldelay entrance (5 from "loop' module, 2 from gain, 1 from RAM_strobes, -2 from internal)
 //7 is to bring the latency down by one cycle - should be 5 from 'loop' + 2 from gain + 1 from P1_strobe (then minus 1 from the register on opgate)
+
+parameter real CLK_FREQ = 357e6;
+parameter real SUB_PULSE_LENGTH = 280e-9;
+
+
+localparam [9:0] PULSE_LENGTH = (CLK_FREQ * SUB_PULSE_LENGTH * 4); //think about how to generalise this! - just use full_pulse length OR 140ns * CF?
 
 // gain stage, delay, combi o/p block, o/p filtering, decimate and put out.
 (* shreg_extract = "no" *) reg signed [15:0] amp_drive = 16'sd0;
@@ -68,6 +77,11 @@ StrbShifter #(64) StoreStrbDel (clk, store_strb, strbDel, storeStrbDel);
 //Form output gate
 (* shreg_extract = "no" *) reg [9:0] opGate_ctr = 10'd0;
 (* shreg_extract = "no" *) reg opGate = 1'b0;
+`ifdef COMBINE
+	wire [9:0] start_proc_b = (~opMode[1]) ? start_proc : end_proc - PULSE_LENGTH;
+`else
+	wire [9:0] start_proc_b = start_proc;
+`endif
 
 //sequential block for opGate
 always @(posedge clk) begin
@@ -75,7 +89,7 @@ always @(posedge clk) begin
 	if (storeStrbDel) begin
 		//(* full_case, parallel_case *) 
 		case (opGate_ctr) 
-			start_proc: opGate <= 1'b1;	
+			start_proc_b: opGate <= 1'b1;	
 			end_proc: opGate <= 1'b0;
 			default: opGate <= opGate;
 		endcase
@@ -130,20 +144,48 @@ always @(posedge clk) begin
 		//2'd0: amp_drive <= amp_drive_del;
 		2'd0: amp_drive <= (delayBypass_a) ? din : amp_drive_del;
 		2'd1: amp_drive <= {constDac_val, 3'b000};
+		`ifdef COMBINE
+			2'd2: amp_drive <= (delayBypass_a) ? din : amp_drive_del; //Combined mode, as for sample-by-sample
+		`endif
 		default: amp_drive <= 16'd0;
+		//default: amp_drive <= (delayBypass_a) ? din : amp_drive_del; //Combined mode, as for sample-by-sample
 		endcase
 	else amp_drive <= 16'd0;
 end
 
+`ifdef COMBINE
+	//Instance Combiner Module
+	wire signed [15:0] comb_dout;
+	reg signed [15:0] amp_drive_a, amp_drive_b;
+	(* shreg_extract = "no" *) reg integ_gate = 1'b0;
+	Combiner #(CLK_FREQ, SUB_PULSE_LENGTH) Combiner1(.clk(clk), .din(amp_drive), .integ(integ_gate), .bypass(1'b0), .dout(comb_dout));
+	always @(posedge clk) begin
+		amp_drive_b <= amp_drive_a;
+		amp_drive_a <= amp_drive;
+		integ_gate <= opGate;
+		end
+	wire signed [15:0] amp_drive_IIRin = (~opMode[1]) ? amp_drive_b : comb_dout;	
+`else
+	wire signed [15:0] amp_drive_IIRin = amp_drive; // Possibly remove bypass option later!
+`endif
+
 
 // Filter here now - input is amp_drive
+wire signed [15:0] amp_drive_AD;
 
-wire signed [15:0] amp_drive_AD, amp_drive_out;
+`ifdef SUM_OUTPUT_SMPLS
+	reg signed [15:0] amp_drive_AD_b = 16'sd0;
+	wire signed [16:0] amp_drive_out = amp_drive_AD + amp_drive_AD_b;
+	//reg signed [16:0] amp_drive_out = 16'sd0;
+`else
+	wire signed [15:0] amp_drive_out = amp_drive_AD;
+`endif
 
 antiDroopIIR_16 #(16) antiDroopIIR_DAC(
 	.clk(clk),
 	.trig(store_strb),
-	.din(amp_drive),
+	//.din(amp_drive),
+	.din(amp_drive_IIRin),
 	.tapWeight(IIRtapWeight),
 	.accClr_en(1'b1),
 	//.oflowClr(),
@@ -152,7 +194,7 @@ antiDroopIIR_16 #(16) antiDroopIIR_DAC(
 );
 
 //assign amp_drive_out = (~IIRbypass) ? amp_drive_b : amp_drive_AD;
-assign amp_drive_out = amp_drive_AD;
+//assign amp_drive_out = amp_drive_AD;
 
 //Decimate and put out
 
@@ -177,6 +219,10 @@ always @(posedge clk) begin
 	clearDAC <= (storeStrbDel_d & ~storeStrbDel_c) && feedfwd_en_b;
 	output_en <= storeStrbDel_b && feedfwd_en_b;
 	//if (clearDAC && feedfwd_en_b) begin
+	`ifdef SUM_OUTPUT_SMPLS 
+		amp_drive_AD_b <= amp_drive_AD;
+		//amp_drive_out <= amp_drive_AD + amp_drive_AD_b;
+	`endif
 	if (clearDAC) begin
 	//if (clearDAC && feedfwd_en) begin
 		//dout <= dout; //seems  a bit dangerous to assume that the amp_drive will be cancelled at the correct time!
@@ -192,7 +238,11 @@ always @(posedge clk) begin
 		clk_tog <= ~clk_tog;
 		DAC_en <= clk_tog ^ DACclkPhase;
 		//DAC_en_copy <= clk_tog ^ DACclkPhase;
-		dout <= (clk_tog) ? dout : amp_drive_out[15:3];
+		`ifdef SUM_OUTPUT_SMPLS
+			dout <= (clk_tog) ? dout : amp_drive_out[16:4];
+		`else
+			dout <= (clk_tog) ? dout : amp_drive_out[15:3];
+		`endif
 		//dout_copy <= (clk_tog) ? dout : amp_drive_out;
 	end else begin
 		dout <= 13'd0;
