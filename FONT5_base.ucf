@@ -8,7 +8,7 @@
 #DEFAULT PULLUP = TRUE;
 
 NET "FONT5_detect" LOC = "AP12";
-
+################################
 # 357MHz input
 ##FastClkA
 #NET "FastClkA_n" LOC = "AG20";
@@ -18,16 +18,16 @@ NET "FONT5_detect" LOC = "AP12";
 #NET "FastClkB_p" LOC = "AH20";
 NET "clk357_n" LOC = "AH19";
 NET "clk357_p" LOC = "AH20";
-NET "clk357" TNM_NET = "clk357";
-TIMESPEC "TS_clk357" = PERIOD "clk357" 2.8ns HIGH 50 %;
+NET "clk357_p" TNM_NET = "clk357_p";
+TIMESPEC "TS_clk357_p" = PERIOD "clk357_p" 2.8ns HIGH 50 %;
 
 #INST "BUFGMUX_CTRL_inst" LOC = "BUFGCTRL_X0Y0";
 
 # 40MHz input
 NET "clk40_s" LOC = "V7";
 NET "clk40_s" CLOCK_DEDICATED_ROUTE = FALSE;
-NET "clk40" TNM_NET = "clk40";
-TIMESPEC "TS_clk40" = PERIOD "clk40" 25ns HIGH 50 %;
+NET "clk40_s" TNM_NET = "clk40_s";
+TIMESPEC "TS_clk40_s" = PERIOD "clk40_s" 25ns HIGH 50 %;
 
 ## Trigger input
 #NET "trig" LOC = "G8";
@@ -430,7 +430,7 @@ NET "diginput2"  LOC = "AG5";
 #NET "trim_ld_mon" LOC = "H19" | DRIVE = 24  | SLEW = FAST;
 #NET "trim_data_mon" LOC = "H20" | DRIVE = 24  | SLEW = FAST;
 
-#DAC3
+##DAC3
 #NET "dac3_clk" LOC = "AF15" | DRIVE = 24  | SLEW = FAST;
 #NET "dac3_out<0>" LOC = "AE16";
 #NET "dac3_out<1>" LOC = "AF16";
@@ -462,3 +462,6 @@ NET "diginput2"  LOC = "AG5";
 #NET "dac4_out<11>" LOC = "AE13";
 #NET "dac4_out<12>" LOC = "AE12";
 
+## ADVANCED TIMING CONSTRIANTS ##
+NET "FONT5_base_top/loop/opMode*" TIG; # Slow MUX_SEL control signal?
+#NET "iddr*_ce*" TIG;
