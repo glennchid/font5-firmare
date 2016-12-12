@@ -156,7 +156,7 @@ end
 `ifdef COMBINE
 	//Instance Combiner Module
 	wire signed [15:0] comb_dout;
-	reg signed [15:0] amp_drive_a, amp_drive_b;
+	reg signed [15:0] amp_drive_a = 16'sd0, amp_drive_b = 16'sd0;
 	(* shreg_extract = "no" *) reg integ_gate = 1'b0;
 	Combiner #(CLK_FREQ, SUB_PULSE_LENGTH) Combiner1(.clk(clk), .din(amp_drive), .integ(integ_gate), .bypass(1'b0), .dout(comb_dout));
 	always @(posedge clk) begin
