@@ -6,7 +6,7 @@ initial begin
 	`ifdef XILINX_ISIM
 		//ctrl_regs[39]=7'b1011110; // {6'd47,1'b0}
 		
-		ctrl_regs[37]=7'd32;//32;
+		ctrl_regs[37]=7'd1;//32;
 		ctrl_regs[38]=7'd0;//32;
 		ctrl_regs[39]=7'd93; // if use_strobes enabled must multiply by 2 -- max decimal = 127  WAS 7'd94
 		ctrl_regs[40]=7'b1100000; // {3'd3, 4'd0} was 7'b0110000
@@ -17,7 +17,7 @@ initial begin
 		ctrl_regs[46] = 7'b0010000; 	// K1 const DAC = +4095
 		ctrl_regs[47] = 7'd0;			// DAC1 phase
 		ctrl_regs[48] = 7'd0;			// DAC2 phase
-		ctrl_regs[49] = -7'sd32;			// K1 gain
+		ctrl_regs[49] = 7'sd0;//-7'sd32;			// K1 gain
 		ctrl_regs[50] = 7'sd0;			// K2 gain
 		//ctrl_regs[51] = 7'd0;
 		ctrl_regs[51] = 7'b1101100; 	// ch1 and ch2 IIR filters on
