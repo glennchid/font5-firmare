@@ -49,7 +49,7 @@ initial begin
 		ctrl_regs[51] = 7'b1111100;
 		ctrl_regs[52] = 7'b0001111;
 		//ctrl_regs[96] = 7'd96; // Baud_rate 460.8 kbps
-		ctrl_regs[96] = 7'd32; // Baud 112.8; sync_en =1
+		ctrl_regs[96] = 7'd40; //WAS 32// Baud 112.8; sync_en =1
 		ctrl_regs[97] = 7'd56; // 3 high in 4
 		ctrl_regs[110] = 7'd0; ///DigInA threshold
 		ctrl_regs[111] = 7'd7; ///DigInB threshold		
@@ -63,7 +63,7 @@ initial begin
 		ctrl_regs_mem[51] = 7'b1111100;
 		ctrl_regs_mem[52] = 7'b0001111;
 		//ctrl_regs_mem[96] = 7'd0; // Baud_rate 460.8 kbps
-		ctrl_regs_mem[96] = 7'd32; // Baud 112.8; sync_en =1
+		ctrl_regs_mem[96] = 7'd40; //WAS 32// Baud 112.8; sync_en =1
 		ctrl_regs_mem[97] = 7'd56; // 3 high in 4
 
 		ctrl_regs_mem[110]=3'd0; ///DigInA threshold

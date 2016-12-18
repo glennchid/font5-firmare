@@ -23,7 +23,8 @@ wire trig_edge = trig_a & ~trig_b;
 //reg trig_edge = 1'b0;
 (* shreg_extract = "no" *) reg signed [6:0] tapWeight_a = 7'sd0, tapWeight_b = 7'sd0;
 
-wire oflow = (^tap[IIR_scale+16:IIR_scale+15]);
+//wire oflow = (^tap[IIR_scale+16:IIR_scale+15]);
+wire oflow = (~&tap[47:IIR_scale+15] && ~&(~tap[47:IIR_scale+15]));
 
 
 always @(posedge clk) begin
