@@ -1,16 +1,8 @@
 module ampDrive (
 	input clk,
 	input feedfwd_en,
-	`ifdef TEST
-		input opGate,
-		input opMode, //0 = sample-by-sample, 1 = constant DAC, 2 = Pulse mean removal //
-	`else
-		input store_strb,
-		input use_strobes,
-		input [9:0] start_proc,
-		input [9:0] end_proc,
-		input [1:0] opMode, //0 = sample-by-sample, 1 = constant DAC, 2 = Pulse mean removal //
-	`endif
+	input opGate,
+	input opMode, //0 = sample-by-sample, 1 = constant DAC, 2 = Pulse mean removal //
 	input [4:0] Ldelay,
 	input signed [12:0] constDac_val,
 	input signed [15:0] din,
@@ -35,24 +27,14 @@ parameter OFFSET_DELAY = 4'd8; //with respect to store_strb at Ldelay entrance (
 //parameter OFFSET_DELAY = 4'd10; //with respect to store_strb at Ldelay entrance (5 from "loop' module, 2 from gain, 1 from RAM_strobes, -2 from internal)
 	// NB: now includes 2 cycle delay from the Combiner Module
 //7 is to bring the latency down by one cycle - should be 5 from 'loop' + 2 from gain + 1 from P1_strobe (then minus 1 from the register on opgate)
-`ifndef TEST
-	parameter real CLK_FREQ = 357e6;
-	parameter real SUB_PULSE_LENGTH = 280e-9;
-
-
-	localparam [9:0] PULSE_LENGTH = (CLK_FREQ * SUB_PULSE_LENGTH * 4); //think about how to generalise this! - just use full_pulse length OR 140ns * CF?
-`endif
 
 // gain stage, delay, combi o/p block, o/p filtering, decimate and put out.
 (* shreg_extract = "no" *) reg signed [15:0] amp_drive = 16'sd0;
 
 wire signed [15:0] amp_drive_del;
 
-`ifndef TEST
-	wire storeStrbDel;
-`else
-	wire opGateDel;
-`endif
+wire opGateDel;
+
 //wire [5:0] strbDel;
 reg [5:0] strbDel = 6'd0;
 reg delayBypass_a = 1'b1, delayBypass_b = 1'b1;
@@ -85,37 +67,8 @@ ShiftReg16 #(32) latencyDelay (clk, delayBypass_b, din, Ldelay_b, amp_drive_del)
 
 //assign strbDel = Ldelay + OFFSET_DELAY;
 //Delay the store strobe by required amount
-`ifndef TEST
-	StrbShifter #(64) StoreStrbDel (clk, store_strb, strbDel, storeStrbDel);
-`else
-	StrbShifter #(64) StoreStrbDel (clk, opGate, strbDel, opGateDel);
-`endif
 
-`ifndef TEST
-	//Form output gate  //COMMENTED 12/12/16 GBC MOVED to PFF_DSP_16
-	(* shreg_extract = "no" *) reg [9:0] opGate_ctr = 10'd0;
-	(* shreg_extract = "no" *) reg opGate = 1'b0;
-	`ifdef COMBINE
-		wire [9:0] start_proc_b = (~opMode[1]) ? start_proc : end_proc - PULSE_LENGTH;
-	`else
-		wire [9:0] start_proc_b = start_proc;
-	`endif
-
-	//sequential block for opGate
-	always @(posedge clk) begin
-		opGate_ctr <= (storeStrbDel) ? opGate_ctr + 1'b1 : 11'd0;
-		if (storeStrbDel) begin
-			//(* full_case, parallel_case *) 
-			case (opGate_ctr) 
-				start_proc_b: opGate <= 1'b1;	
-				end_proc: opGate <= 1'b0;
-				default: opGate <= opGate;
-			endcase
-		end else begin
-			opGate <= 1'b0;
-			end
-	end
-`endif
+StrbShifter #(64) StoreStrbDel (clk, opGate, strbDel, opGateDel);
 
 //combinatorial block for opGate
 /*always @(posedge clk) opGate_ctr <= (storeStrbDel) ? opGate_ctr + 1'b1 : 11'd0;
@@ -157,56 +110,23 @@ end*/
 
 always @(posedge clk) begin
 	//delayBypass <= (Ldelay==5'd0); // register the comparator output for timing
-	`ifndef TEST
-		if (storeStrbDel && (opGate || ~use_strobes))
-			(* full_case, parallel_case *) //recoded 09/10/14
+	
+	if (opGateDel)
+		(* full_case, parallel_case *) //recoded 09/10/14
 			case (opMode) 	//Need to include saturation detection here, this will be evident from the filter output - could just look for overflows!
-				//2'd0: amp_drive <= amp_drive_del;
-				2'd0: amp_drive <= (delayBypass_a) ? din : amp_drive_del;
-				2'd1: amp_drive <= {constDac_val, 3'b000};
-				`ifdef COMBINE
-					2'd2: amp_drive <= (delayBypass_a) ? din : amp_drive_del; //Combined mode, as for sample-by-sample
-				`endif
-				default: amp_drive <= 16'd0;
-				//default: amp_drive <= (delayBypass_a) ? din : amp_drive_del; //Combined mode, as for sample-by-sample
+			//2'd0: amp_drive <= amp_drive_del;
+			1'd0: amp_drive <= (delayBypass_a) ? din : amp_drive_del;
+			1'd1: amp_drive <= {constDac_val, 3'b000};
+	//		`ifdef COMBINE
+	//			2'd2: amp_drive <= (delayBypass_a) ? din : amp_drive_del; //Combined mode, as for sample-by-sample
+	//		`endif
+			default: amp_drive <= 16'd0;
+			//default: amp_drive <= (delayBypass_a) ? din : amp_drive_del; //Combined mode, as for sample-by-sample
 			endcase
-		else amp_drive <= 16'd0;
-	`else
-		if (opGateDel)
-			(* full_case, parallel_case *) //recoded 09/10/14
-				case (opMode) 	//Need to include saturation detection here, this will be evident from the filter output - could just look for overflows!
-				//2'd0: amp_drive <= amp_drive_del;
-				1'd0: amp_drive <= (delayBypass_a) ? din : amp_drive_del;
-				1'd1: amp_drive <= {constDac_val, 3'b000};
-		//		`ifdef COMBINE
-		//			2'd2: amp_drive <= (delayBypass_a) ? din : amp_drive_del; //Combined mode, as for sample-by-sample
-		//		`endif
-				default: amp_drive <= 16'd0;
-				//default: amp_drive <= (delayBypass_a) ? din : amp_drive_del; //Combined mode, as for sample-by-sample
-				endcase
-		else amp_drive <= 16'd0;
-	`endif
+	else amp_drive <= 16'd0;
 end
 
-`ifndef TEST
-	`ifdef COMBINE //COMMENTED 12/12/16 GBC MOVED to PFF_DSP_16
-		//Instance Combiner Module
-		wire signed [15:0] comb_dout;
-		reg signed [15:0] amp_drive_a = 16'sd0, amp_drive_b = 16'sd0;
-		(* shreg_extract = "no" *) reg integ_gate = 1'b0;
-		Combiner #(CLK_FREQ, SUB_PULSE_LENGTH) Combiner1(.clk(clk), .din(amp_drive), .integ(integ_gate), .bypass(1'b0), .dout(comb_dout));
-		always @(posedge clk) begin
-			amp_drive_b <= amp_drive_a;
-			amp_drive_a <= amp_drive;
-			integ_gate <= opGate;
-			end
-		wire signed [15:0] amp_drive_IIRin = (~opMode[1]) ? amp_drive_b : comb_dout;	
-	`else
-		wire signed [15:0] amp_drive_IIRin = amp_drive; // Possibly remove bypass option later!
-	`endif
-`else
-	wire signed [15:0] amp_drive_IIRin = amp_drive; // Possibly remove bypass option later!
-`endif
+wire signed [15:0] amp_drive_IIRin = amp_drive; // Possibly remove bypass option later!
 
 // Filter here now - input is amp_drive
 wire signed [15:0] amp_drive_AD;
@@ -221,11 +141,7 @@ wire signed [15:0] amp_drive_AD;
 
 antiDroopIIR_16 #(16) antiDroopIIR_DAC(
 	.clk(clk),
-	`ifdef TEST
-		.trig(opGate),
-	`else
-		.trig(store_strb),
-	`endif
+	.trig(opGate),
 	//.din(amp_drive),
 	.din(amp_drive_IIRin),
 	.tapWeight(IIRtapWeight),
@@ -253,11 +169,7 @@ reg clearDAC = 1'b0, output_en = 1'b0;
 //assign output_en = storeStrbDel_c; // Compensate with the three cycle delay through the filter or delay of 1 without filter
 
 always @(posedge clk) begin
-	`ifndef TEST
-		storeStrbDel_a <= storeStrbDel;
-	`else
-		storeStrbDel_a <= opGateDel;
-	`endif
+	storeStrbDel_a <= opGateDel;
 	storeStrbDel_b <= storeStrbDel_a;	
 	storeStrbDel_c <= storeStrbDel_b;	
 	storeStrbDel_d <= storeStrbDel_c;	

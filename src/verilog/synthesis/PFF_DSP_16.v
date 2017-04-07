@@ -170,7 +170,6 @@ always @(posedge clk) begin
 	loop2_lutReg_c <= loop2_lutReg_b;
 	end
 	
-`ifdef TEST	 
 // GATING and COMBINATION SECTION - NEW 12/12/16 (Moved from ampDrive module to do combination ahead of the gain stage //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 parameter real CLK_FREQ = 357e6;
@@ -242,25 +241,18 @@ end
 
 // END GATE and COMBINER 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-`endif
 
 // Apply Kicker 1 Gain
 wire signed [15:0] kick1_gainMult;
 wire kick1_oflowDet;
-`ifndef TEST
-	normMult #(GAIN_SCALE, GAIN_OFFSET, GAIN_MSB, DIODE_SCALE) kick1Mult(clk, useDiode, oflowMode, lutReg_c, MixerIn, kick1_gain, kick1_gainMult, kick1_oflowDet);
-`else
-	normMult #(GAIN_SCALE, GAIN_OFFSET, GAIN_MSB, DIODE_SCALE) kick1Mult(clk, useDiode, oflowMode, normMult_DiodeIn, normMult_MixerIn, kick1_gain, kick1_gainMult, kick1_oflowDet);
-`endif
+
+normMult #(GAIN_SCALE, GAIN_OFFSET, GAIN_MSB, DIODE_SCALE) kick1Mult(clk, useDiode, oflowMode, normMult_DiodeIn, normMult_MixerIn, kick1_gain, kick1_gainMult, kick1_oflowDet);
 	
 // Apply Kicker 2 Gain
 wire signed [15:0] kick2_gainMult;
 wire kick2_oflowDet;
-`ifndef TEST
-	normMult #(GAIN_SCALE, GAIN_OFFSET, GAIN_MSB, DIODE_SCALE) kick2Mult(clk, useDiode, oflowMode, lutReg_c, MixerIn, kick2_gain, kick2_gainMult, kick2_oflowDet);
-`else
-	normMult #(GAIN_SCALE, GAIN_OFFSET, GAIN_MSB, DIODE_SCALE) kick2Mult(clk, useDiode, oflowMode, normMult_DiodeIn, normMult_MixerIn, kick2_gain, kick2_gainMult, kick2_oflowDet);
-`endif
+
+normMult #(GAIN_SCALE, GAIN_OFFSET, GAIN_MSB, DIODE_SCALE) kick2Mult(clk, useDiode, oflowMode, normMult_DiodeIn, normMult_MixerIn, kick2_gain, kick2_gainMult, kick2_oflowDet);
 	
 
 ///////// LOOP2 ////////////////////////////////////////// - use a define include statement and compare timings with/without 2nd loop ....
@@ -281,7 +273,6 @@ LUTROM LUT2(
 	.douta(loop2_lutReg)
 	);
 
-`ifdef TEST
 // For loop 2 just comprensate for the delays!!
 `ifdef COMBINE
 	//Instance Combiner Module 1 (Diode)
@@ -304,25 +295,18 @@ LUTROM LUT2(
 	wire signed [15:0] loop2_normMult_MixerIn = loop2_MixerIn; // Possibly remove bypass option later!
 	wire signed [17:0] loop2_normMult_DiodeIn = loop2_lutReg_c; // Possibly remove bypass option later!
 `endif
-`endif
 
 // Apply Kicker 1 Gain
 wire signed [15:0] loop2_kick1_gainMult;
 wire loop2_kick1_oflowDet;
-`ifndef TEST
-	normMult #(LOOP2_GAIN_SCALE, LOOP2_GAIN_OFFSET, LOOP2_GAIN_MSB, LOOP2_DIODE_SCALE) loop2_kick1Mult(clk, loop2_useDiode, oflowMode, loop2_lutReg_c, loop2_MixerIn, loop2_kick1_gain, loop2_kick1_gainMult, loop2_kick1_oflowDet);
-`else
-	normMult #(LOOP2_GAIN_SCALE, LOOP2_GAIN_OFFSET, LOOP2_GAIN_MSB, LOOP2_DIODE_SCALE) loop2_kick1Mult(clk, loop2_useDiode, oflowMode, loop2_normMult_DiodeIn, loop2_normMult_MixerIn, loop2_kick1_gain, loop2_kick1_gainMult, loop2_kick1_oflowDet);
-`endif
+
+normMult #(LOOP2_GAIN_SCALE, LOOP2_GAIN_OFFSET, LOOP2_GAIN_MSB, LOOP2_DIODE_SCALE) loop2_kick1Mult(clk, loop2_useDiode, oflowMode, loop2_normMult_DiodeIn, loop2_normMult_MixerIn, loop2_kick1_gain, loop2_kick1_gainMult, loop2_kick1_oflowDet);
 	
 // Apply Kicker 2 Gain
 wire signed [15:0] loop2_kick2_gainMult;
 wire loop2_kick2_oflowDet;
-`ifndef TEST
-	normMult #(LOOP2_GAIN_SCALE, LOOP2_GAIN_OFFSET, LOOP2_GAIN_MSB, LOOP2_DIODE_SCALE) loop2_kick2Mult(clk, loop2_useDiode, oflowMode, loop2_lutReg_c, loop2_MixerIn, loop2_kick2_gain, loop2_kick2_gainMult, loop2_kick2_oflowDet);
-`else
-	normMult #(LOOP2_GAIN_SCALE, LOOP2_GAIN_OFFSET, LOOP2_GAIN_MSB, LOOP2_DIODE_SCALE) loop2_kick2Mult(clk, loop2_useDiode, oflowMode, loop2_normMult_DiodeIn, loop2_normMult_MixerIn, loop2_kick2_gain, loop2_kick2_gainMult, loop2_kick2_oflowDet);
-`endif
+
+normMult #(LOOP2_GAIN_SCALE, LOOP2_GAIN_OFFSET, LOOP2_GAIN_MSB, LOOP2_DIODE_SCALE) loop2_kick2Mult(clk, loop2_useDiode, oflowMode, loop2_normMult_DiodeIn, loop2_normMult_MixerIn, loop2_kick2_gain, loop2_kick2_gainMult, loop2_kick2_oflowDet);
 
 ///////////////// END LOOP2 /////////////////////////////////
 
@@ -436,13 +420,10 @@ end*/
 
 // Instance the DriveOutput modules //
 wire DAC1_IIR_oflowDet, DAC2_IIR_oflowDet;
-`ifndef TEST
-ampDrive kick1Drive(clk, feedfwd_en, store_strb, use_strobes, start_proc, end_proc, opMode, kick1_delay, kick1_constDac_val, kick1_drive_b, DAC1clkPhase, DAC1_IIRtapWeight, DAC1_IIR_oflowDet, kick1_dout, DAC1_en);//, kick3_dout, DAC3_en);
-ampDrive kick2Drive(clk, feedfwd_en, store_strb, use_strobes, start_proc, end_proc, opMode, kick2_delay, kick2_constDac_val, kick2_drive_b, DAC2clkPhase, DAC2_IIRtapWeight, DAC2_IIR_oflowDet, kick2_dout, DAC2_en);//, kick4_dout, DAC4_en);
-`else
+
 ampDrive #(.OFFSET_DELAY(OFFSET_DELAY)) kick1Drive(clk, feedfwd_en, (store_strb && (opGate || ~use_strobes)), opMode[0], kick1_delay, kick1_constDac_val, kick1_drive_b, DAC1clkPhase, DAC1_IIRtapWeight, DAC1_IIR_oflowDet, kick1_dout, DAC1_en);
 ampDrive #(.OFFSET_DELAY(OFFSET_DELAY)) kick2Drive(clk, feedfwd_en, (store_strb && (opGate || ~use_strobes)), opMode[0], kick2_delay, kick2_constDac_val, kick2_drive_b, DAC2clkPhase, DAC2_IIRtapWeight, DAC2_IIR_oflowDet, kick2_dout, DAC2_en);
-`endif
+
 reg kick1_oflowDet_a = 1'b0, kick2_oflowDet_a = 1'b0;
 always @(posedge clk) begin
 	kick1_oflowDet_a <= kick1_oflowDet;
