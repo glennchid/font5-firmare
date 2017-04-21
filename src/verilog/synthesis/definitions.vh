@@ -1,5 +1,7 @@
 //`define INCLUDE_TESTBENCH
 
+`define BUILD_CTF
+
 `define DOUBLE_CONTROL_REGS
 
 `define GAINRES_14
