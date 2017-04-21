@@ -1307,6 +1307,8 @@ wire [12:0] k2constDAC = (constDAC2UARTor) ? {uart2_rx_data, 5'd0} : k2_const;
 `endif
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ////
 
+`ifdef BUILD_CTF
+
 PFF_DSP_16 loop (
 	.clk(clk357),
 	.store_strb(store_strb),
@@ -1358,6 +1360,7 @@ PFF_DSP_16 loop (
 	//.DAC4_en(dac4_clk)
 	);
 
+`endif	
 
 //assign dac3_clk = dac1_clk;
 //assign dac4_clk = dac2_clk;
