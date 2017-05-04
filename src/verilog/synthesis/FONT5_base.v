@@ -570,9 +570,9 @@ end
 reg  [6:0]  cr_p1_offset_delay  = 7'd0;
 wire [5:0] 	cr_p1_scan_delay;
 wire [1:0] 	cr_p1_align_ch_sel;
-wire signed [12:0] p1_xdif_data;
-wire signed [12:0] p1_ydif_data;
-wire signed [12:0] p1_sum_data;
+wire signed [12:0] chan1_data;
+wire signed [12:0] chan2_data;
+wire signed [12:0] chan3_data;
 wire 			p1_mon_strb;
 wire 			p1_mon_saturated;
 wire [5:0]  p1_mon_total_data_del;
@@ -620,8 +620,8 @@ parameter ch3_bitflip = ~13'b0001011110100;
 (* shreg_extract = "no" *) reg [4:0] bank1_sr_tap_a = 5'd2, bank1_sr_tap_b = 5'd2, bank1_sr_tap_c = 5'd2;
 reg [1:0] bank1_sr_bypass = 2'b11;
 
-dataRegConvert #(13, ch1_bitflip ^ -13'sd4096) ch1_dataRegConvert(clk357, bank1_sr_bypass, ch1_data_in_del, bank1_sr_tap_c, p1_xdif_data);
-dataRegConvert #(13, ch2_bitflip ^ -13'sd4096) ch2_dataRegConvert(clk357, bank1_sr_bypass, ch2_data_in_del, bank1_sr_tap_c, p1_ydif_data);
+dataRegConvert #(13, ch1_bitflip ^ -13'sd4096) ch1_dataRegConvert(clk357, bank1_sr_bypass, ch1_data_in_del, bank1_sr_tap_c, chan1_data);
+dataRegConvert #(13, ch2_bitflip ^ -13'sd4096) ch2_dataRegConvert(clk357, bank1_sr_bypass, ch2_data_in_del, bank1_sr_tap_c, chan2_data);
 dataRegConvert #(13, ch3_bitflip ^ -13'sd4096) ch3_dataRegConvert(clk357, bank1_sr_bypass, ch3_data_in_del, bank1_sr_tap_c, p1_sum_data);
 //dataRegConvert #(13) ch1_dataRegConvert(clk357, ch1_data_in_del, p1_xdif_data);
 //dataRegConvert #(13) ch2_dataRegConvert(clk357, ch2_data_in_del, p1_ydif_data);
@@ -634,11 +634,11 @@ dataRegConvert #(13, ch3_bitflip ^ -13'sd4096) ch3_dataRegConvert(clk357, bank1_
 
 //Insert Droop Correction Filter 
 
-wire signed [DSP_WIDTH-1:0] p1_xdif_IIR_out, p1_xdif_RAM_data;
+wire signed [DSP_WIDTH-1:0] chan1_IIR_out, chan1_RAM_data;
 //wire signed [DSP_WIDTH-1:0] p1_ydif_IIR_out, p1_ydif_RAM_data;
-wire signed [DSP_WIDTH-1:0] p1_ydif_IIR_out;
-wire signed [DSP_WIDTH:0] p1_ydif_RAM_data;
-wire signed [DSP_WIDTH-1:0] p1_sum_IIR_out, p1_sum_RAM_data;
+wire signed [DSP_WIDTH-1:0] chan2_IIR_out;
+wire signed [DSP_WIDTH:0] chan2_RAM_data;
+wire signed [DSP_WIDTH-1:0] chan3_IIR_out, chan3_RAM_data;
 wire ch1_oflowDet, ch2_oflowDet, ch3_oflowDet;
 
 
@@ -671,55 +671,55 @@ antiDroopIIR #(17) antiDroopIIR_ch1(
 	.clk(clk357),
 	.trig(TFSMstate[2]),
 	//.din(p1_xdif_data_fix),
-	.din(p1_xdif_data),
+	.din(chan1_data),
 	.tapWeight(ch1_IIRtapWeight),
 	.accClr_en(1'b1),
 	//.oflowClr(),
 	.oflowDetect(ch1_oflowDet),
-	.dout(p1_xdif_IIR_out)
+	.dout(chan1_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch2(
 	.clk(clk357),
 	.trig(TFSMstate[2]),
 	//.din(p1_ydif_data_fix),
-	.din(p1_ydif_data),
+	.din(chan2_data),
 	.tapWeight(ch2_IIRtapWeight),
 	.accClr_en(1'b1),
 	//.oflowClr(),
 	.oflowDetect(ch2_oflowDet),
-	.dout(p1_ydif_IIR_out)
+	.dout(chan2_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch3(
 	.clk(clk357),
 	.trig(TFSMstate[2]),
 	//.din(p1_sum_data_fix),
-	.din(p1_sum_data),
+	.din(chan3_data),
 	.tapWeight(ch3_IIRtapWeight),
 	.accClr_en(1'b1),
 	//.oflowClr(),
 	.oflowDetect(ch3_oflowDet),
-	.dout(p1_sum_IIR_out)
+	.dout(chan3_IIR_out)
 );
 reg bank1_oflowDet = 1'b0;
-wire chan2_offset_oflow;
-reg signed [12:0] chan2_offset_a = 13'd0, chan2_offset_b = 13'd0;
-reg signed [12:0] chan5_offset_a = 13'd0, chan5_offset_b = 13'd0;
+wire chan1_offset_oflow, chan2_offset_oflow, chan3_offset_oflow;
+//reg signed [12:0] chan2_offset_a = 13'd0, chan2_offset_b = 13'd0;
+//reg signed [12:0] chan5_offset_a = 13'd0, chan5_offset_b = 13'd0;
 
 always @(posedge clk357) begin
-chan2_offset_a <= chan2_offset;
-chan2_offset_b <= chan2_offset_a;
-chan5_offset_a <= chan5_offset;
-chan5_offset_b <= chan5_offset_a;
-bank1_oflowDet <= (ch1_oflowDet | ch2_oflowDet | ch3_oflowDet | chan2_offset_oflow);
+//chan2_offset_a <= chan2_offset;
+//chan2_offset_b <= chan2_offset_a;
+//chan5_offset_a <= chan5_offset;
+//chan5_offset_b <= chan5_offset_a;
+bank1_oflowDet <= (ch1_oflowDet | ch2_oflowDet | ch3_oflowDet | chan1_offset_oflow | chan2_offset_oflow | chan3_offset_oflow);
 //bank1_oflowDet <= (ch1_oflowDet | ch2_oflowDet | ch3_oflowDet);
 end
 
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data_fix : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data_fix : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data_fix : p1_sum_IIR_out;
-assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? {p1_xdif_data, 3'b000} : p1_xdif_IIR_out;
-assign p1_ydif_RAM_data = ((~IIRbypass_b[1]) ? {p1_ydif_data, 3'b000} : p1_ydif_IIR_out) + {chan2_offset_b, 3'b000};
-assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? {p1_sum_data, 3'b000} : p1_sum_IIR_out;
+assign chan1_RAM_data = ((~IIRbypass_b[0]) ? {chan1_data, 3'b000} : chan1_IIR_out) + {chan1_offset, 3'b000};
+assign chan2_RAM_data = ((~IIRbypass_b[1]) ? {chan2_data, 3'b000} : chan2_IIR_out) + {chan2_offset, 3'b000};
+assign chan3_RAM_data = ((~IIRbypass_b[2]) ? {chan3_data, 3'b000} : chan3_IIR_out) + {chan3_offset, 3'b000};
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data : p1_sum_IIR_out;
@@ -730,8 +730,9 @@ assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? {p1_sum_data, 3'b000} : p1_sum_IIR_
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data : p1_ydif_corr;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data : p1_sum_corr;
 
-assign chan2_offset_oflow = (^p1_ydif_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
-
+assign chan1_offset_oflow = (^chan1_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
+assign chan2_offset_oflow = (^chan2_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
+assign chan3_offset_oflow = (^chan3_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 
 // %%%%%%%%%%%%%%%%%%   P1 ADC GROUP DAQ_RAM MODULES   %%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -743,58 +744,58 @@ assign chan2_offset_oflow = (^p1_ydif_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 
 wire 			daq_ram_rst;
 wire			uart_tx_empty;
 
-reg 			daq_p1_xdif_tx_en = 1'b0;
-wire 			daq_p1_xdif_tx_done;
+reg 			daq_chan1_tx_en = 1'b0;
+wire 			daq_chan1_tx_done;
 //wire [7:0] 	daq_p1_xdif_tx_data;
-wire [6:0] 	daq_p1_xdif_tx_data;
-wire 			daq_p1_xdif_tx_load;
-DAQ_RAM daq_ram_p1_xdif(
+wire [6:0] 	daq_chan1_tx_data;
+wire 			daq_chan1_tx_load;
+DAQ_RAM daq_ram_chan1(
 	.reset(daq_ram_rst),
-	.tx_en(daq_p1_xdif_tx_en),
+	.tx_en(daq_chan1_tx_en),
 	.tx_clk(clk40),
-	.tx_data_ready(daq_p1_xdif_tx_load),
-	.tx_data(daq_p1_xdif_tx_data),
+	.tx_data_ready(daq_chan1_tx_load),
+	.tx_data(daq_chan1_tx_data),
 	.tx_data_loaded(~uart_tx_empty),
-	.tx_complete(daq_p1_xdif_tx_done),
+	.tx_complete(daq_chan1_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p1_store_strb),
-	.wr_data({p1_xdif_RAM_data[DSP_WIDTH-1], p1_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
+	.wr_data({chan1_RAM_data[DSP_WIDTH-1], chan1_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
-reg 			daq_p1_ydif_tx_en = 1'b0;
-wire 			daq_p1_ydif_tx_done;
+reg 			daq_chan2_tx_en = 1'b0;
+wire 			daq_chan2_tx_done;
 //wire [7:0] 	daq_p1_ydif_tx_data;
-wire [6:0] 	daq_p1_ydif_tx_data;
-wire 			daq_p1_ydif_tx_load;
-DAQ_RAM daq_ram_p1_ydif(
+wire [6:0] 	daq_chan2_tx_data;
+wire 			daq_chan2_tx_load;
+DAQ_RAM daq_ram_chan2(
 	.reset(daq_ram_rst),
-	.tx_en(daq_p1_ydif_tx_en),
+	.tx_en(daq_chan2_tx_en),
 	.tx_clk(clk40),
-	.tx_data_ready(daq_p1_ydif_tx_load),
-	.tx_data(daq_p1_ydif_tx_data),
+	.tx_data_ready(daq_chan2_tx_load),
+	.tx_data(daq_chan2_tx_data),
 	.tx_data_loaded(~uart_tx_empty),
-	.tx_complete(daq_p1_ydif_tx_done),
+	.tx_complete(daq_chan2_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p1_store_strb),
-	.wr_data({p1_ydif_RAM_data[DSP_WIDTH-1], p1_ydif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
+	.wr_data({chan2_RAM_data[DSP_WIDTH-1], chan2_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
-reg 			daq_p1_sum_tx_en = 1'b0;
-wire 			daq_p1_sum_tx_done;
+reg 			daq_chan3_tx_en = 1'b0;
+wire 			daq_chan3_tx_done;
 //wire [7:0] 	daq_p1_sum_tx_data;
-wire [6:0] 	daq_p1_sum_tx_data;
-wire 			daq_p1_sum_tx_load;
-DAQ_RAM daq_ram_p1_sum(
+wire [6:0] 	daq_chan3_tx_data;
+wire 			daq_chan3_tx_load;
+DAQ_RAM daq_ram_chan3(
 	.reset(daq_ram_rst),
-	.tx_en(daq_p1_sum_tx_en),
+	.tx_en(daq_chan3_tx_en),
 	.tx_clk(clk40),
-	.tx_data_ready(daq_p1_sum_tx_load),
-	.tx_data(daq_p1_sum_tx_data),
+	.tx_data_ready(daq_chan3_tx_load),
+	.tx_data(daq_chan3_tx_data),
 	.tx_data_loaded(~uart_tx_empty),
-	.tx_complete(daq_p1_sum_tx_done),
+	.tx_complete(daq_chan3_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p1_store_strb),
-	.wr_data({p1_sum_RAM_data[DSP_WIDTH-1], p1_sum_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
+	.wr_data({chan3_RAM_data[DSP_WIDTH-1], chan3_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 
@@ -808,9 +809,9 @@ DAQ_RAM daq_ram_p1_sum(
 reg  [6:0]  cr_p2_offset_delay = 7'd0;
 wire [5:0] 	cr_p2_scan_delay;
 wire [1:0] 	cr_p2_align_ch_sel;
-wire signed [12:0] p2_xdif_data;
-wire signed [12:0] p2_ydif_data;
-wire signed [12:0] p2_sum_data;
+wire signed [12:0] chan4_data;
+wire signed [12:0] chan5_data;
+wire signed [12:0] chan6_data;
 wire 			p2_mon_strb;
 wire 			p2_mon_saturated;
 wire [5:0]  p2_mon_total_data_del;
@@ -858,21 +859,21 @@ parameter ch6_bitflip = ~13'b1111111010110;
 (* shreg_extract = "no" *) reg [4:0] bank2_sr_tap_a = 5'd2, bank2_sr_tap_b = 5'd2, bank2_sr_tap_c = 5'd2;
 reg [1:0] bank2_sr_bypass = 2'b11;
 
-dataRegConvert #(13, ch4_bitflip ^ -13'sd4096) ch4_dataRegConvert(clk357, bank2_sr_bypass, ch4_data_in_del, bank2_sr_tap_c, p2_xdif_data);
-dataRegConvert #(13, ch5_bitflip ^ -13'sd4096) ch5_dataRegConvert(clk357, bank2_sr_bypass, ch5_data_in_del, bank2_sr_tap_c, p2_ydif_data);
-dataRegConvert #(13, ch6_bitflip ^ -13'sd4096) ch6_dataRegConvert(clk357, bank2_sr_bypass, ch6_data_in_del, bank2_sr_tap_c, p2_sum_data);
+dataRegConvert #(13, ch4_bitflip ^ -13'sd4096) ch4_dataRegConvert(clk357, bank2_sr_bypass, ch4_data_in_del, bank2_sr_tap_c, chan4_data);
+dataRegConvert #(13, ch5_bitflip ^ -13'sd4096) ch5_dataRegConvert(clk357, bank2_sr_bypass, ch5_data_in_del, bank2_sr_tap_c, chan5_data);
+dataRegConvert #(13, ch6_bitflip ^ -13'sd4096) ch6_dataRegConvert(clk357, bank2_sr_bypass, ch6_data_in_del, bank2_sr_tap_c, chan6_data);
 
 // Flip the signals which were incorrect polarity at LVDS inputs
 //`include "p2_adcblock_flip_signals.v"
 
 //Insert P2 Droop Correction Filters 
 
-wire signed [DSP_WIDTH-1:0] p2_xdif_IIR_out, p2_xdif_RAM_data;
+wire signed [DSP_WIDTH-1:0] chan4_IIR_out, chan4_RAM_data;
 //wire signed [DSP_WIDTH-1:0] p2_ydif_IIR_out, p2_ydif_RAM_data;
-wire signed [DSP_WIDTH-1:0] p2_ydif_IIR_out;
-wire signed [DSP_WIDTH:0] p2_ydif_RAM_data;
+wire signed [DSP_WIDTH-1:0] chan5_IIR_out;
+wire signed [DSP_WIDTH:0] chan5_RAM_data;
 
-wire signed [DSP_WIDTH-1:0] p2_sum_IIR_out, p2_sum_RAM_data;
+wire signed [DSP_WIDTH-1:0] chan6_IIR_out, chan6_RAM_data;
 wire ch4_oflowDet, ch5_oflowDet, ch6_oflowDet;
 
 
@@ -880,38 +881,38 @@ antiDroopIIR #(17) antiDroopIIR_ch4(
 	.clk(clk357),
 	.trig(TFSMstate[2]),
 //	.din(p2_xdif_data_fix),
-	.din(p2_xdif_data),
+	.din(chan4_data),
 	.tapWeight(ch4_IIRtapWeight),
 	.accClr_en(1'b1),
 	//.oflowClr(),
 	.oflowDetect(ch4_oflowDet),
-	.dout(p2_xdif_IIR_out)
+	.dout(chan4_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch5(
 	.clk(clk357),
 	.trig(TFSMstate[2]),
 	//.din(p2_ydif_data_fix),
-	.din(p2_ydif_data),
+	.din(chan5_data),
 	.tapWeight(ch5_IIRtapWeight),
 	.accClr_en(1'b1),
 	//.oflowClr(),
 	.oflowDetect(ch5_oflowDet),
-	.dout(p2_ydif_IIR_out)
+	.dout(chan5_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch6(
 	.clk(clk357),
 	.trig(TFSMstate[2]),
 	//.din(p2_sum_data_fix),
-	.din(p2_sum_data),
+	.din(chan6_data),
 	.tapWeight(ch6_IIRtapWeight),
 	.accClr_en(1'b1),
 	//.oflowClr(),
 	.oflowDetect(ch6_oflowDet),
-	.dout(p2_sum_IIR_out)
+	.dout(chan6_IIR_out)
 );
 
 reg bank2_oflowDet = 1'b0;
-wire chan5_offset_oflow;
+wire chan4_offset_oflow, chan5_offset_oflow, chan6_offset_oflow;
 always @(posedge clk357) begin
 bank2_sr_tap_a <= bank2_sr_tap;
 bank2_sr_tap_b <= bank2_sr_tap_a;
@@ -921,7 +922,7 @@ case (bank2_sr_tap_b)
 	5'd1: bank2_sr_bypass <= 2'b10;
 	default: bank2_sr_bypass <= 2'b00;
 	endcase
-bank2_oflowDet <= (ch4_oflowDet | ch5_oflowDet | ch6_oflowDet | chan5_offset_oflow);
+bank2_oflowDet <= (ch4_oflowDet | ch5_oflowDet | ch6_oflowDet | chan4_offset_oflow | chan5_offset_oflow | chan6_offset_oflow);
 //bank2_oflowDet <= (ch4_oflowDet | ch5_oflowDet | ch6_oflowDet);
 
 end
@@ -929,15 +930,17 @@ end
 //assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data_fix : p2_xdif_IIR_out;
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data_fix : p2_ydif_IIR_out;
 //assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data_fix : p2_sum_IIR_out;
-assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? {p2_xdif_data, 3'b000} : p2_xdif_IIR_out;
-assign p2_ydif_RAM_data = ((~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out)  + {chan5_offset_b, 3'b000};
+assign chan4_RAM_data = ((~IIRbypass_b[3]) ? {chan4_data, 3'b000} : chan4_IIR_out) + {chan4_offset, 3'b000};
+assign chan5_RAM_data = ((~IIRbypass_b[4]) ? {chan5_data, 3'b000} : chan5_IIR_out) + {chan5_offset, 3'b000};
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out;
-assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? {p2_sum_data, 3'b000} : p2_sum_IIR_out;
+assign chan6_RAM_data = ((~IIRbypass_b[5]) ? {chan6_data, 3'b000} : chan6_IIR_out) + {chan6_offset, 3'b000};
 //assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data : p2_xdif_IIR_out;
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data : p2_ydif_IIR_out;
 //assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data : p2_sum_IIR_out;
 
-assign chan5_offset_oflow = (^p2_ydif_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
+assign chan4_offset_oflow = (^chan4_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
+assign chan5_offset_oflow = (^chan5_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
+assign chan6_offset_oflow = (^chan6_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 
 // %%%%%%%%%%%%%%%%%%   P2 ADC GROUP DAQ_RAM MODULES   %%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -946,58 +949,58 @@ assign chan5_offset_oflow = (^p2_ydif_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 
 // at 357MHz and number of samples tracked.  When tx_en goes high, data are sent
 // to the UART
 
-reg 			daq_p2_xdif_tx_en = 1'b0;
-wire 			daq_p2_xdif_tx_done;
+reg 			daq_chan4_tx_en = 1'b0;
+wire 			daq_chan4_tx_done;
 //wire [7:0] 	daq_p2_xdif_tx_data;
-wire [6:0] 	daq_p2_xdif_tx_data;
-wire 			daq_p2_xdif_tx_load;
-DAQ_RAM daq_ram_p2_xdif(
+wire [6:0] 	daq_chan4_tx_data;
+wire 			daq_chan4_tx_load;
+DAQ_RAM daq_ram_chan4(
 	.reset(daq_ram_rst),
-	.tx_en(daq_p2_xdif_tx_en),
+	.tx_en(daq_chan4_tx_en),
 	.tx_clk(clk40),
-	.tx_data_ready(daq_p2_xdif_tx_load),
-	.tx_data(daq_p2_xdif_tx_data),
+	.tx_data_ready(daq_chan4_tx_load),
+	.tx_data(daq_chan4_tx_data),
 	.tx_data_loaded(~uart_tx_empty),
-	.tx_complete(daq_p2_xdif_tx_done),
+	.tx_complete(daq_chan4_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p2_store_strb),
-	.wr_data({p2_xdif_RAM_data[DSP_WIDTH-1], p2_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
+	.wr_data({chan4_RAM_data[DSP_WIDTH-1], chan4_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
-reg 			daq_p2_ydif_tx_en = 1'b0;
-wire 			daq_p2_ydif_tx_done;
+reg 			daq_chan5_tx_en = 1'b0;
+wire 			daq_chan5_tx_done;
 //wire [7:0] 	daq_p2_ydif_tx_data;
-wire [6:0] 	daq_p2_ydif_tx_data;
-wire 			daq_p2_ydif_tx_load;
-DAQ_RAM daq_ram_p2_ydif(
+wire [6:0] 	daq_chan5_tx_data;
+wire 			daq_chan5_tx_load;
+DAQ_RAM daq_ram_chan5(
 	.reset(daq_ram_rst),
-	.tx_en(daq_p2_ydif_tx_en),
+	.tx_en(daq_chan5_tx_en),
 	.tx_clk(clk40),
-	.tx_data_ready(daq_p2_ydif_tx_load),
-	.tx_data(daq_p2_ydif_tx_data),
+	.tx_data_ready(daq_chan5_tx_load),
+	.tx_data(daq_chan5_tx_data),
 	.tx_data_loaded(~uart_tx_empty),
-	.tx_complete(daq_p2_ydif_tx_done),
+	.tx_complete(daq_chan5_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p2_store_strb),
-	.wr_data({p2_ydif_RAM_data[DSP_WIDTH-1], p2_ydif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
+	.wr_data({chan5_RAM_data[DSP_WIDTH-1], chan5_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
-reg 			daq_p2_sum_tx_en = 1'b0;
-wire 			daq_p2_sum_tx_done;
+reg 			daq_chan6_tx_en = 1'b0;
+wire 			daq_chan6_tx_done;
 //wire [7:0] 	daq_p2_sum_tx_data;
-wire [6:0] 	daq_p2_sum_tx_data;
-wire 			daq_p2_sum_tx_load;
-DAQ_RAM daq_ram_p2_sum(
+wire [6:0] 	daq_chan6_tx_data;
+wire 			daq_chan6_tx_load;
+DAQ_RAM daq_ram_chan6(
 	.reset(daq_ram_rst),
-	.tx_en(daq_p2_sum_tx_en),
+	.tx_en(daq_chan6_tx_en),
 	.tx_clk(clk40),
-	.tx_data_ready(daq_p2_sum_tx_load),
-	.tx_data(daq_p2_sum_tx_data),
+	.tx_data_ready(daq_chan6_tx_load),
+	.tx_data(daq_chan6_tx_data),
 	.tx_data_loaded(~uart_tx_empty),
-	.tx_complete(daq_p2_sum_tx_done),
+	.tx_complete(daq_chan6_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p2_store_strb),
-	.wr_data({p2_sum_RAM_data[DSP_WIDTH-1], p2_sum_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
+	.wr_data({chan6_RAM_data[DSP_WIDTH-1], chan6_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 
@@ -1011,9 +1014,9 @@ DAQ_RAM daq_ram_p2_sum(
 reg  [6:0]  cr_p3_offset_delay = 7'd0;
 wire [5:0] 	cr_p3_scan_delay;
 wire [1:0] 	cr_p3_align_ch_sel;
-wire signed [12:0] p3_xdif_data;
-wire signed [12:0] p3_ydif_data;
-wire signed [12:0] p3_sum_data;
+wire signed [12:0] chan7_data;
+wire signed [12:0] chan8_data;
+wire signed [12:0] chan9_data;
 wire 			p3_mon_strb;
 wire 			p3_mon_saturated;
 wire [5:0]  p3_mon_total_data_del;
@@ -1061,18 +1064,18 @@ parameter ch9_bitflip = ~13'b0001001111010;
 (* shreg_extract = "no" *) reg [4:0] bank3_sr_tap_a = 5'd2, bank3_sr_tap_b = 5'd2, bank3_sr_tap_c = 5'd2;
 reg [1:0] bank3_sr_bypass = 2'b11;
 
-dataRegConvert #(13, ch7_bitflip ^ -13'sd4096) ch7_dataRegConvert(clk357, bank3_sr_bypass, ch7_data_in_del, bank3_sr_tap_c, p3_xdif_data);
-dataRegConvert #(13, ch8_bitflip ^ -13'sd4096) ch8_dataRegConvert(clk357, bank3_sr_bypass, ch8_data_in_del, bank3_sr_tap_c, p3_ydif_data);
-dataRegConvert #(13, ch9_bitflip ^ -13'sd4096) ch9_dataRegConvert(clk357, bank3_sr_bypass, ch9_data_in_del, bank3_sr_tap_c, p3_sum_data);
+dataRegConvert #(13, ch7_bitflip ^ -13'sd4096) ch7_dataRegConvert(clk357, bank3_sr_bypass, ch7_data_in_del, bank3_sr_tap_c, chan7_data);
+dataRegConvert #(13, ch8_bitflip ^ -13'sd4096) ch8_dataRegConvert(clk357, bank3_sr_bypass, ch8_data_in_del, bank3_sr_tap_c, chan8_data);
+dataRegConvert #(13, ch9_bitflip ^ -13'sd4096) ch9_dataRegConvert(clk357, bank3_sr_bypass, ch9_data_in_del, bank3_sr_tap_c, chan9_data);
 
 // Flip the signals which were incorrect polarity at LVDS inputs
 //`include "p3_adcblock_flip_signals.v"
 
 //Insert P3 Droop Correction Filters 
 
-wire signed [DSP_WIDTH-1:0] p3_xdif_IIR_out, p3_xdif_RAM_data;
-wire signed [DSP_WIDTH-1:0] p3_ydif_IIR_out, p3_ydif_RAM_data;
-wire signed [DSP_WIDTH-1:0] p3_sum_IIR_out, p3_sum_RAM_data;
+wire signed [DSP_WIDTH-1:0] chan7_IIR_out, chan7_RAM_data;
+wire signed [DSP_WIDTH-1:0] chan8_IIR_out, chan8_RAM_data;
+wire signed [DSP_WIDTH-1:0] chan9_IIR_out, chan9_RAM_data;
 wire ch7_oflowDet, ch8_oflowDet, ch9_oflowDet;
 
 
@@ -1080,37 +1083,38 @@ antiDroopIIR #(17) antiDroopIIR_ch7(
 	.clk(clk357),
 	.trig(TFSMstate[2]),
 	//.din(p3_xdif_data_fix),
-	.din(p3_xdif_data),
+	.din(chan7_data),
 	.tapWeight(ch7_IIRtapWeight),
 	.accClr_en(1'b1),
 	//.oflowClr(),
 	.oflowDetect(ch7_oflowDet),
-	.dout(p3_xdif_IIR_out)
+	.dout(chan7_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch8(
 	.clk(clk357),
 	.trig(TFSMstate[2]),
 	//.din(p3_ydif_data_fix),
-	.din(p3_ydif_data),
+	.din(chan8_data),
 	.tapWeight(ch8_IIRtapWeight),
 	.accClr_en(1'b1),
 	//.oflowClr(),
 	.oflowDetect(ch8_oflowDet),
-	.dout(p3_ydif_IIR_out)
+	.dout(chan8_IIR_out)
 );
 antiDroopIIR #(17) antiDroopIIR_ch9(
 	.clk(clk357),
 	.trig(TFSMstate[2]),
 	//.din(p3_sum_data_fix),
-	.din(p3_sum_data),
+	.din(chan9_data),
 	.tapWeight(ch9_IIRtapWeight),
 	.accClr_en(1'b1),
 	//.oflowClr(),
 	.oflowDetect(ch9_oflowDet),
-	.dout(p3_sum_IIR_out)
+	.dout(chan9_IIR_out)
 );
 
 reg bank3_oflowDet = 1'b0;
+wire chan7_offset_oflow, chan8_offset_oflow, chan9_offset_oflow;
 always @(posedge clk357) begin
 bank3_sr_tap_a <= bank3_sr_tap;
 bank3_sr_tap_b <= bank3_sr_tap_a;
@@ -1120,18 +1124,22 @@ case (bank3_sr_tap_b)
 	5'd1: bank3_sr_bypass <= 2'b10;
 	default: bank3_sr_bypass <= 2'b00;
 	endcase
-bank3_oflowDet <= (ch7_oflowDet | ch8_oflowDet | ch9_oflowDet);
+bank3_oflowDet <= (ch7_oflowDet | ch8_oflowDet | ch9_oflowDet | chan7_offset_oflow | chan8_offset_oflow | chan9_ofsfet_oflow);
 end
 
 //assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data_fix : p3_xdif_IIR_out;
 //assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data_fix : p3_ydif_IIR_out;
 //assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data_fix : p3_sum_IIR_out;
-assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? {p3_xdif_data, 3'b000} : p3_xdif_IIR_out;
-assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? {p3_ydif_data, 3'b000} : p3_ydif_IIR_out;
-assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? {p3_sum_data, 3'b000} : p3_sum_IIR_out;
+assign chan7_RAM_data = ((~IIRbypass_b[6]) ? {chan7_data, 3'b000} : chan7_IIR_out) + {chan7_offset, 3'b000};
+assign chan8_RAM_data = ((~IIRbypass_b[7]) ? {chan8_data, 3'b000} : chan8_IIR_out) + {chan8_offset, 3'b000};
+assign chan9_RAM_data = ((~IIRbypass_b[8]) ? {chan9_data, 3'b000} : chan9_IIR_out) + {chan9_offset, 3'b000};
 //assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data : p3_xdif_IIR_out;
 //assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data : p3_ydif_IIR_out;
 //assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data : p3_sum_IIR_out;
+
+assign chan7_offset_oflow = (^chan7_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
+assign chan8_offset_oflow = (^chan8_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
+assign chan9_offset_oflow = (^chan9_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 
 
 // %%%%%%%%%%%%%%%%%%   P3 ADC GROUP DAQ_RAM MODULES   %%%%%%%%%%%%%%%%%%%%%
@@ -1141,58 +1149,58 @@ assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? {p3_sum_data, 3'b000} : p3_sum_IIR_
 // at 357MHz and number of samples tracked.  When tx_en goes high, data are sent
 // to the UART
 
-reg 			daq_p3_xdif_tx_en = 1'b0;
-wire 			daq_p3_xdif_tx_done;
+reg 			daq_chan7_tx_en = 1'b0;
+wire 			daq_chan7_tx_done;
 //wire [7:0] 	daq_p3_xdif_tx_data;
-wire [6:0] 	daq_p3_xdif_tx_data;
-wire 			daq_p3_xdif_tx_load;
-DAQ_RAM daq_ram_p3_xdif(
+wire [6:0] 	daq_chan7_tx_data;
+wire 			daq_chan7_tx_load;
+DAQ_RAM daq_ram_chan7(
 	.reset(daq_ram_rst),
-	.tx_en(daq_p3_xdif_tx_en),
+	.tx_en(daq_chan7_tx_en),
 	.tx_clk(clk40),
-	.tx_data_ready(daq_p3_xdif_tx_load),
-	.tx_data(daq_p3_xdif_tx_data),
+	.tx_data_ready(daq_chan7_tx_load),
+	.tx_data(daq_chan7_tx_data),
 	.tx_data_loaded(~uart_tx_empty),
-	.tx_complete(daq_p3_xdif_tx_done),
+	.tx_complete(daq_chan7_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p3_store_strb),
-	.wr_data({p3_xdif_RAM_data[DSP_WIDTH-1], p3_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
+	.wr_data({chan7_RAM_data[DSP_WIDTH-1], chan7_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
-reg 			daq_p3_ydif_tx_en = 1'b0;
-wire 			daq_p3_ydif_tx_done;
+reg 			daq_chan8_tx_en = 1'b0;
+wire 			daq_chan8_tx_done;
 //wire [7:0] 	daq_p3_ydif_tx_data;
-wire [6:0] 	daq_p3_ydif_tx_data;
-wire 			daq_p3_ydif_tx_load;
-DAQ_RAM daq_ram_p3_ydif(
+wire [6:0] 	daq_chan8_tx_data;
+wire 			daq_chan8_tx_load;
+DAQ_RAM daq_ram_chan8(
 	.reset(daq_ram_rst),
-	.tx_en(daq_p3_ydif_tx_en),
+	.tx_en(daq_chan8_tx_en),
 	.tx_clk(clk40),
-	.tx_data_ready(daq_p3_ydif_tx_load),
-	.tx_data(daq_p3_ydif_tx_data),
+	.tx_data_ready(daq_chan8_tx_load),
+	.tx_data(daq_chan8_tx_data),
 	.tx_data_loaded(~uart_tx_empty),
-	.tx_complete(daq_p3_ydif_tx_done),
+	.tx_complete(daq_chan8_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p3_store_strb),
-	.wr_data({p3_ydif_RAM_data[DSP_WIDTH-1], p3_ydif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
+	.wr_data({chan8_RAM_data[DSP_WIDTH-1], chan8_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
-reg 			daq_p3_sum_tx_en = 1'b0;
+reg 			daq_chan9_tx_en = 1'b0;
 wire 			daq_p3_sum_tx_done;
-//wire [7:0] 	daq_p3_sum_tx_data;
-wire [6:0] 	daq_p3_sum_tx_data;
-wire 			daq_p3_sum_tx_load;
-DAQ_RAM daq_ram_p3_sum(
+//wire [7:0] 	daq_chan9_tx_data;
+wire [6:0] 	daq_chan9_tx_data;
+wire 			daq_chan9_tx_load;
+DAQ_RAM daq_ram_chan9(
 	.reset(daq_ram_rst),
-	.tx_en(daq_p3_sum_tx_en),
+	.tx_en(daq_chan9_tx_en),
 	.tx_clk(clk40),
-	.tx_data_ready(daq_p3_sum_tx_load),
-	.tx_data(daq_p3_sum_tx_data),
+	.tx_data_ready(daq_chan9_tx_load),
+	.tx_data(daq_chan9_tx_data),
 	.tx_data_loaded(~uart_tx_empty),
-	.tx_complete(daq_p3_sum_tx_done),
+	.tx_complete(daq_chan9_tx_done),
 	.wr_clk(clk357),
 	.wr_en(p3_store_strb),
-	.wr_data({p3_sum_RAM_data[DSP_WIDTH-1], p3_sum_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
+	.wr_data({chan9_RAM_data[DSP_WIDTH-1], chan9_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]})
 );
 
 
@@ -1330,11 +1338,11 @@ PFF_DSP_16 loop (
 	//.kick1_constDac_val_b(k1_const), 
 	//.kick2_constDac_val_b(k2_const), 
 	//.diodeIn(p1_xdif_RAM_data[15:3]),
-	.diodeIn(p1_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]), 
-	.loop2_diodeIn(p2_xdif_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]),
-	.MixerIn(p1_ydif_RAM_data[DSP_WIDTH-1:0]), 
+	.diodeIn(chan1_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]), 
+	.loop2_diodeIn(chan4_RAM_data[DSP_WIDTH-1:DSP_WIDTH-13]),
+	.MixerIn(chan2_RAM_data[DSP_WIDTH-1:0]), 
 	//.loop2_mixerIn(p2_ydif_RAM_data),
-	.loop2_MixerIn(p2_ydif_RAM_data[DSP_WIDTH-1:0]),
+	.loop2_MixerIn(chan5_RAM_data[DSP_WIDTH-1:0]),
 	//.mixerIn({p1_ydif_RAM_data, 3'b000}), 
 	.kick1_gain_b(k1_gain), 
 	.kick2_gain_b(k2_gain), 
@@ -1558,15 +1566,15 @@ assign dac2_clk = k2_dac_en;
 // Sequence state parametrisation
 //parameter TRANS_WAIT = 				5'd0;
 parameter TRANS_STAMP =				5'd2;
-parameter TRANS_P1_XDIF = 			5'd4;
-parameter TRANS_P1_YDIF = 			5'd6;
-parameter TRANS_P1_SUM = 			5'd8;
-parameter TRANS_P2_XDIF = 			5'd10;
-parameter TRANS_P2_YDIF = 			5'd12;
-parameter TRANS_P2_SUM = 			5'd14;
-parameter TRANS_P3_XDIF = 			5'd16;
-parameter TRANS_P3_YDIF = 			5'd18;
-parameter TRANS_P3_SUM = 			5'd20;
+parameter TRANS_CHAN1 = 			5'd4;
+parameter TRANS_CHAN2 = 			5'd6;
+parameter TRANS_CHAN3 = 			5'd8;
+parameter TRANS_CHAN4 = 			5'd10;
+parameter TRANS_CHAN5 = 			5'd12;
+parameter TRANS_CHAN6 = 			5'd14;
+parameter TRANS_CHAN7 = 			5'd16;
+parameter TRANS_CHAN8 = 			5'd18;
+parameter TRANS_CHAN9 = 			5'd20;
 parameter TRANS_DAC_K1 = 			5'd22;
 parameter TRANS_DAC_K2 = 			5'd24;
 //parameter TRANS_357_RB =			5'd26;
@@ -1619,30 +1627,30 @@ DAQ_sequencer2 DAQ_sequencer(
 // %%%%%%%%%%%%%   (DE)MULTIPLEX THE DAQ_RAM TX CONTROL SIGNALS   %%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 always @(posedge clk40) begin
-	daq_p1_xdif_tx_en <= 0;
-	daq_p1_ydif_tx_en <= 0;
-	daq_p1_sum_tx_en  <= 0;
-	daq_p2_xdif_tx_en <= 0;
-	daq_p2_ydif_tx_en <= 0;
-	daq_p2_sum_tx_en  <= 0;
-	daq_p3_xdif_tx_en <= 0;
-	daq_p3_ydif_tx_en <= 0;
-	daq_p3_sum_tx_en  <= 0;
+	daq_chan1_tx_en <= 0;
+	daq_chan2_tx_en <= 0;
+	daq_chan3_tx_en  <= 0;
+	daq_chan4_tx_en <= 0;
+	daq_chan5_tx_en <= 0;
+	daq_chan6_tx_en  <= 0;
+	daq_chan7_tx_en <= 0;
+	daq_chan8_tx_en <= 0;
+	daq_chan9_tx_en  <= 0;
 	daq_dac1_tx_en		<= 0;
 	daq_dac3_tx_en 	<= 0;
 	//daq_readback357_tx_en 	<= 0;
 	daq_readback_tx_en		<= 0;
 	daq_readback_mon_tx_en 	<= 0;
 	case(daq_trans_state)
-		TRANS_P1_XDIF : daq_p1_xdif_tx_en <= daq_ram_tx_en;
-		TRANS_P1_YDIF : daq_p1_ydif_tx_en <= daq_ram_tx_en;
-		TRANS_P1_SUM  : daq_p1_sum_tx_en  <= daq_ram_tx_en;
-		TRANS_P2_XDIF : daq_p2_xdif_tx_en <= daq_ram_tx_en;
-		TRANS_P2_YDIF : daq_p2_ydif_tx_en <= daq_ram_tx_en;
-		TRANS_P2_SUM  : daq_p2_sum_tx_en  <= daq_ram_tx_en;
-		TRANS_P3_XDIF : daq_p3_xdif_tx_en <= daq_ram_tx_en;
-		TRANS_P3_YDIF : daq_p3_ydif_tx_en <= daq_ram_tx_en;
-		TRANS_P3_SUM  : daq_p3_sum_tx_en  <= daq_ram_tx_en;
+		TRANS_CHAN1 : daq_chan1_tx_en <= daq_ram_tx_en;
+		TRANS_CHAN2 : daq_chan2_tx_en <= daq_ram_tx_en;
+		TRANS_CHAN3  : daq_chan3_tx_en  <= daq_ram_tx_en;
+		TRANS_CHAN4 : daq_chan4_tx_en <= daq_ram_tx_en;
+		TRANS_CHAN5 : daq_chan5_tx_en <= daq_ram_tx_en;
+		TRANS_CHAN6  : daq_chan6_tx_en  <= daq_ram_tx_en;
+		TRANS_CHAN7 : daq_chan7_tx_en <= daq_ram_tx_en;
+		TRANS_CHAN8 : daq_chan8_tx_en <= daq_ram_tx_en;
+		TRANS_CHAN9  : daq_chan9_tx_en  <= daq_ram_tx_en;
 		TRANS_DAC_K1  : daq_dac1_tx_en	 <= daq_ram_tx_en;
 		TRANS_DAC_K2  : daq_dac3_tx_en	 <= daq_ram_tx_en;
 		//TRANS_357_RB  : daq_readback357_tx_en 		<= daq_ram_tx_en;
@@ -1653,15 +1661,15 @@ end
 	
 always @(posedge clk40) begin
 	case(daq_trans_state)
-		TRANS_P1_XDIF : current_daq_ram_tx_done <= daq_p1_xdif_tx_done;
-		TRANS_P1_YDIF : current_daq_ram_tx_done <= daq_p1_ydif_tx_done;
-		TRANS_P1_SUM  : current_daq_ram_tx_done <= daq_p1_sum_tx_done;
-		TRANS_P2_XDIF : current_daq_ram_tx_done <= daq_p2_xdif_tx_done;
-		TRANS_P2_YDIF : current_daq_ram_tx_done <= daq_p2_ydif_tx_done;
-		TRANS_P2_SUM  : current_daq_ram_tx_done <= daq_p2_sum_tx_done;
-		TRANS_P3_XDIF : current_daq_ram_tx_done <= daq_p3_xdif_tx_done;
-		TRANS_P3_YDIF : current_daq_ram_tx_done <= daq_p3_ydif_tx_done;
-		TRANS_P3_SUM  : current_daq_ram_tx_done <= daq_p3_sum_tx_done;
+		TRANS_CHAN1 : current_daq_ram_tx_done <= daq_chan1_tx_done;
+		TRANS_CHAN2 : current_daq_ram_tx_done <= daq_chan2_tx_done;
+		TRANS_CHAN3  : current_daq_ram_tx_done <= daq_chan3_tx_done;
+		TRANS_CHAN4 : current_daq_ram_tx_done <= daq_chan4_tx_done;
+		TRANS_CHAN5 : current_daq_ram_tx_done <= daq_chan5_tx_done;
+		TRANS_CHAN6  : current_daq_ram_tx_done <= daq_chan6_tx_done;
+		TRANS_CHAN7 : current_daq_ram_tx_done <= daq_chan7_tx_done;
+		TRANS_CHAN8 : current_daq_ram_tx_done <= daq_chan8_tx_done;
+		TRANS_CHAN9  : current_daq_ram_tx_done <= daq_chan9_tx_done;
 		TRANS_DAC_K1  : current_daq_ram_tx_done <= daq_dac1_tx_done;
 		TRANS_DAC_K2  : current_daq_ram_tx_done <= daq_dac3_tx_done;
 		//TRANS_357_RB  : current_daq_ram_tx_done <= daq_readback357_tx_done;
@@ -1678,15 +1686,15 @@ reg  [7:0]	uart_tx_data = 8'd0;
 
 always @(posedge clk40) begin
 	case(daq_trans_state)
-		TRANS_P1_XDIF : uart_tx_load <= daq_p1_xdif_tx_load;
-		TRANS_P1_YDIF : uart_tx_load <= daq_p1_ydif_tx_load;
-		TRANS_P1_SUM  : uart_tx_load <= daq_p1_sum_tx_load;
-		TRANS_P2_XDIF : uart_tx_load <= daq_p2_xdif_tx_load;
-		TRANS_P2_YDIF : uart_tx_load <= daq_p2_ydif_tx_load;
-		TRANS_P2_SUM  : uart_tx_load <= daq_p2_sum_tx_load;
-		TRANS_P3_XDIF : uart_tx_load <= daq_p3_xdif_tx_load;
-		TRANS_P3_YDIF : uart_tx_load <= daq_p3_ydif_tx_load;
-		TRANS_P3_SUM  : uart_tx_load <= daq_p3_sum_tx_load;
+		TRANS_CHAN1 : uart_tx_load <= daq_chan1_tx_load;
+		TRANS_CHAN2 : uart_tx_load <= daq_chan2_tx_load;
+		TRANS_CHAN3  : uart_tx_load <= daq_chan3_tx_load;
+		TRANS_CHAN4 : uart_tx_load <= daq_chan4_tx_load;
+		TRANS_CHAN5 : uart_tx_load <= daq_chan5_tx_load;
+		TRANS_CHAN6  : uart_tx_load <= daq_chan6_tx_load;
+		TRANS_CHAN7 : uart_tx_load <= daq_chan7_tx_load;
+		TRANS_CHAN8 : uart_tx_load <= daq_chan8_tx_load;
+		TRANS_CHAN9  : uart_tx_load <= daq_chan9_tx_load;
 		TRANS_DAC_K1  : uart_tx_load <= daq_dac1_tx_load;
 		TRANS_DAC_K2  : uart_tx_load <= daq_dac3_tx_load;
 		//TRANS_357_RB  : uart_tx_load <= daq_readback357_tx_load;
@@ -1700,15 +1708,15 @@ end
 always @(posedge clk40) begin
 	case(daq_trans_state)
 		TRANS_STAMP   : uart_tx_data <= {1'b1, daq_seq_tx_data};
-		TRANS_P1_XDIF : uart_tx_data <= {1'b1, daq_p1_xdif_tx_data};
-		TRANS_P1_YDIF : uart_tx_data <= {1'b1, daq_p1_ydif_tx_data};
-		TRANS_P1_SUM  : uart_tx_data <= {1'b1, daq_p1_sum_tx_data};
-		TRANS_P2_XDIF : uart_tx_data <= {1'b1, daq_p2_xdif_tx_data};
-		TRANS_P2_YDIF : uart_tx_data <= {1'b1, daq_p2_ydif_tx_data};
-		TRANS_P2_SUM  : uart_tx_data <= {1'b1, daq_p2_sum_tx_data};
-		TRANS_P3_XDIF : uart_tx_data <= {1'b1, daq_p3_xdif_tx_data};
-		TRANS_P3_YDIF : uart_tx_data <= {1'b1, daq_p3_ydif_tx_data};
-		TRANS_P3_SUM  : uart_tx_data <= {1'b1, daq_p3_sum_tx_data};
+		TRANS_CHAN1 : uart_tx_data <= {1'b1, daq_chan1_tx_data};
+		TRANS_CHAN2 : uart_tx_data <= {1'b1, daq_chan2_tx_data};
+		TRANS_CHAN3  : uart_tx_data <= {1'b1, daq_chan3_tx_data};
+		TRANS_CHAN4 : uart_tx_data <= {1'b1, daq_chan4_tx_data};
+		TRANS_CHAN5 : uart_tx_data <= {1'b1, daq_chan5_tx_data};
+		TRANS_CHAN6  : uart_tx_data <= {1'b1, daq_chan6_tx_data};
+		TRANS_CHAN7 : uart_tx_data <= {1'b1, daq_chan7_tx_data};
+		TRANS_CHAN8 : uart_tx_data <= {1'b1, daq_chan8_tx_data};
+		TRANS_CHAN9  : uart_tx_data <= {1'b1, daq_chan9_tx_data};
 		TRANS_DAC_K1  : uart_tx_data <= {1'b1, daq_dac1_tx_data};
 		TRANS_DAC_K2  : uart_tx_data <= {1'b1, daq_dac3_tx_data};
 		//TRANS_357_RB  : uart_tx_data <= daq_readback357_tx_data;
