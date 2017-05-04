@@ -123,7 +123,9 @@ reg signed [12:0]  sum_all2=0;
 //reg signed [12:0] sum_all3;
 wire signed [12:0] pout, pout2, pout3, pout4;
 //wire signed [47:0] pout_a, pout2_a, pout3_a, pout4_a;
-DSP48E_1 DSPModule1(
+
+//DSP48E_1 DSPModule1(
+FBmult #(NO_SAMPLES) DSPModule1(
 			.charge_in(g1_inv_q),
 			.signal_in(bpm1_i_reg_int),
 			.delay_en(delay_en),
@@ -133,7 +135,8 @@ DSP48E_1 DSPModule1(
 			.bunch_strb(bunch_strb)
 			);
 			
-DSP48E_1 DSPModule2(
+//DSP48E_1 DSPModule2(			
+FBmult #(NO_SAMPLES) DSPModule2(
 			.charge_in(g2_inv_q),
 			.signal_in(bpm1_q_reg_int),
 			.delay_en(delay_en),
@@ -142,8 +145,9 @@ DSP48E_1 DSPModule2(
 			.DSPout(pout2),
 			.bunch_strb(bunch_strb)
 			);
-			
-DSP48E_1 DSPModule3(
+
+//DSP48E_1 DSPModule3(			
+FBmult #(NO_SAMPLES) DSPModule3(
 			.charge_in(g3_inv_q),
 			.signal_in(bpm2_i_reg_int),
 			.delay_en(delay_en),
@@ -153,7 +157,8 @@ DSP48E_1 DSPModule3(
 			.bunch_strb(bunch_strb)
 			);
 			
-DSP48E_1 DSPModule4(
+//DSP48E_1 DSPModule4(			
+FBmult #(NO_SAMPLES) DSPModule4(
 			.charge_in(g4_inv_q),
 			.signal_in(bpm2_q_reg_int),
 			.delay_en(delay_en),
