@@ -117,7 +117,8 @@ module FONT5_base(
 		//inout DirectIO1 //Bi-directional I/O port for synchronisation
 		output DirIOB,
 		input auxInA,
-		output auxOutC
+		output auxOutC,
+		output store_strb
     );
 
 //parameters and defintions
@@ -133,7 +134,7 @@ parameter DSP_WIDTH = 16;
 //`define DISABLE_AUXOUTS;
 
 //`define LOAD_ATF_DEFAULTS
-`define LOAD_CTF_DEFAULTS
+`define LOAD_ATF_DEFAULTS
 
 
 `ifdef DOUBLE_CONTROL_REGS
@@ -330,7 +331,7 @@ trigger_divider trig_div (
 // strobes and triggers for ADCs, DAQ and amplifier.
 // All control signals from 357MHz control registers
 
-wire store_strb;
+//wire store_strb;
 wire adc_align_en;
 // Control register wires
 //wire 			cr_clk2_16_edge_sel;
@@ -1362,6 +1363,43 @@ PFF_DSP_16 loop (
 
 `endif	
 
+`ifdef BUILD_ATF
+FBModule my_FBmod(
+		.clk(clk357),
+		.sel(bpm_sel),
+		.ai_in(p1_xdif_data),
+		.aq_in(p1_ydif_data),
+		.bi_in(p2_xdif_data),
+	   .bq_in(p2_ydif_data),
+		.ci_in(p3_xdif_data),
+		.cq_in(p3_ydif_data),
+		.q_signal(p1_sum_data),
+		.bpm_lut_dinb(gainlut_ld_data),
+		.bpm_lut_addrb(gainlut_ld_addr),
+		.bpm1_i_lut_web(k1_p2_lut_wr_en),
+		.bpm1_i_lut_doutb(bpm1_i_lut_doutb),
+		.bpm1_q_lut_web(k1_p3_lut_wr_en),
+		.bpm1_q_lut_doutb(bpm1_q_lut_doutb),
+		.bpm2_i_lut_web(k2_p2_lut_wr_en),
+		.bpm2_i_lut_doutb(bpm2_i_lut_doutb),
+		.bpm2_q_lut_web(k2_p3_lut_wr_en),
+		.bpm2_q_lut_doutb(bpm2_q_lut_doutb),
+		.fb_sgnl(dac1_out),
+		.b1_strobe_b(b1_strobe),
+		.b2_strobe_b(b2_strobe),
+		.delay_en(k1_delayloop_on),
+		.store_strb(store_strb),
+	   .slow_clk(clk40),
+		.banana_corr(k1_b2_offset),
+		.const_dac(k1constDAC),
+		.const_dac_en(k1_const_dac_en),
+		.dac_cond(dac1_clk),
+		.no_bunches_b(no_bunches),
+		.no_samples_b(no_samples),
+		.sample_spacing_b(sample_spacing)
+		);
+`endif
+
 //assign dac3_clk = dac1_clk;
 //assign dac4_clk = dac2_clk;
 //assign dac3_out = dac1_out;
@@ -1858,11 +1896,11 @@ uart_decoder3 uart_decoder (
 );	 
 
 // **** Multiplex the gain lut load strobe ****
-//assign k1_p2_lut_wr_en = (gainlut_ld_select == 5'd0) ? gainlut_ld_en : 1'b0;
-//assign k1_p3_lut_wr_en = (gainlut_ld_select == 5'd1) ? gainlut_ld_en : 1'b0;
+assign k1_p2_lut_wr_en = (gainlut_ld_select == 5'd0) ? gainlut_ld_en : 1'b0;
+assign k1_p3_lut_wr_en = (gainlut_ld_select == 5'd1) ? gainlut_ld_en : 1'b0;
 assign trim_lut_wr_en = (gainlut_ld_select == 5'd2) ? gainlut_ld_en : 1'b0;
-//assign k2_p2_lut_wr_en = (gainlut_ld_select == 5'd3) ? gainlut_ld_en : 1'b0;
-//assign k2_p3_lut_wr_en = (gainlut_ld_select == 5'd4) ? gainlut_ld_en : 1'b0;
+assign k2_p2_lut_wr_en = (gainlut_ld_select == 5'd3) ? gainlut_ld_en : 1'b0;
+assign k2_p3_lut_wr_en = (gainlut_ld_select == 5'd4) ? gainlut_ld_en : 1'b0;
 
 // ******* Control Registers *******************
 
