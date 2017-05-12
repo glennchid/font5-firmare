@@ -22,25 +22,32 @@ module Timing(
 		output reg bunch_strb,
 		input store_strb,
 		input clk,
-		input [9:0] b1_strobe
-//		input [10:0] NO_BUNCHES,
-//		input [10:0] NO_SAMPLES,
-//		input [10:0] SAMPLE_SPACING
+		input [7:0] b1_strobe,
+		input [7:0] b2_strobe,
+		input [1:0] no_bunches,
+		input [3:0] no_samples,
+		input [7:0] sample_spacing,
+		output reg LUTcond
+		
     );
 
+
+//parameter no_bunches=2;       
+//parameter no_samples=1; 
+//parameter sample_spacing=100;  // Number of samples between consecutive bunches
+
 reg [4:0] bunch_counter=0;
-parameter NO_BUNCHES=2;       
-parameter NO_SAMPLES=1; 
-parameter SAMPLE_SPACING=100;
 initial bunch_strb=0;
-(* equivalent_register_removal = "no"*) reg [9:0] i;
-reg [10:0] start_bunch_strb=0;
-reg [10:0] end_bunch_strb=0;
-//reg [31:0] NO_BUNCHES, NO_SAMPLES, SAMPLE_SPACING;
-//reg bunch_strb_a;
+(* equivalent_register_removal = "no"*) reg [7:0] i;
+reg [7:0] start_bunch_strb=0;
+reg [7:0] end_bunch_strb=0;
+//reg LUTcond;
+
+
 // ***** Generate bunch strobe *****
 
 always @ (posedge clk) begin
+LUTcond<=i==b2_strobe+1|| i== b2_strobe+sample_spacing+1;
 if (store_strb) begin
 i<=i+1;
 end
@@ -50,17 +57,16 @@ end
 
 reg cond1,cond1_a, cond2, cond3;
 
-
 always @ (posedge clk) begin
-cond1_a<=bunch_counter==NO_BUNCHES;
-cond1<=cond1_a;
-cond2<=i==start_bunch_strb;
-cond3<=i==end_bunch_strb;
+cond1_a<=bunch_counter==no_bunches; // If haven't exceeded number of bunches
+cond1<=cond1_a;     
+cond2<=i==start_bunch_strb;   // To send bunch strobe high
+cond3<=i==end_bunch_strb;     // To send bunch strobe low
 
 if (~store_strb) begin
 bunch_counter<=0;
 start_bunch_strb<=b1_strobe-2;
-end_bunch_strb<=b1_strobe+NO_SAMPLES-2;
+end_bunch_strb<=b1_strobe+no_samples-2; // Bunch strobe stays high for no_samples samples
 end
 else if (cond1) begin
 end
@@ -69,8 +75,8 @@ if (cond2) bunch_strb<=1;
 else if (cond3) begin
 	bunch_strb<=0;
 	bunch_counter<=bunch_counter+1;
-	start_bunch_strb<=start_bunch_strb+SAMPLE_SPACING;
-	end_bunch_strb<=end_bunch_strb+SAMPLE_SPACING;
+	start_bunch_strb<=start_bunch_strb+sample_spacing;  // Calculate sample numbers for next bunch
+	end_bunch_strb<=end_bunch_strb+sample_spacing;      // Calculate sample numbers for next bunch
 end
 end
 end
