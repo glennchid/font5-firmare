@@ -17,6 +17,15 @@ initial begin
 		//ctrl_regs[51] = 7'd0;
 		ctrl_regs[51] = 7'b0001100; 	// ch1 and ch2 IIR filters on
 		ctrl_regs[52] = 7'b0110000;
+
+		ctrl_regs[67] = 7'b1100100; //samples between bunches e.g 100
+		ctrl_regs[68] = 7'b0011001;
+		ctrl_regs[69] = 7'b0010100;
+		ctrl_regs[70]= 7'b0001010; // bpm_sel, no_bunches
+		ctrl_regs[71] = 7'b0000001;
+		
+
+
 		ctrl_regs[111]=3'd7;				// Trigger threshold code
 		ctrl_regs[119] = 7'b0010100; // top seven bits of ten-bit decimal "164" - # samples
 		ctrl_regs[120] = 7'b1001111; // [bottom three bits of above,  top four bits of channel select (ones hot)]

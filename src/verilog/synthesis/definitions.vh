@@ -1,6 +1,6 @@
 //`define INCLUDE_TESTBENCH
 
-`define BUILD_CTF
+`define BUILD_ATF
 
 `define DOUBLE_CONTROL_REGS
 
