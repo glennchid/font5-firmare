@@ -224,7 +224,8 @@ assign DAC2_IIRtapWeight = ctrl_regs[63];
 
 //assign trig_delay = ctrl_regs[0];			
 assign trig_out1_delay = ctrl_regs[ADDROFF+1];
-assign trig_out_en = (ctrl_regs[ADDROFF+2]==0) ? 0 : 1;
+//assign trig_out_en = (ctrl_regs[ADDROFF+2]==0) ? 0 : 1;
+assign trig_out_en = ctrl_regs[ADDROFF+2][0];
 
 /*assign temp18 = ctrl_regs[4];
 assign p1_bunch1pos  = {temp18[0], ctrl_regs[3]};
@@ -261,7 +262,9 @@ assign k1_const_dac_out	= {temp28[5:0], ctrl_regs[22]};
 assign temp29 = ctrl_regs[25];
 assign k2_const_dac_out	= {temp29[5:0], ctrl_regs[24]};*/
 
-assign cr_clk2_16_edge_sel	= (ctrl_regs[ADDROFF+26]==0) ? 0 : 1;	
+//assign cr_clk2_16_edge_sel	= (ctrl_regs[ADDROFF+26]==0) ? 0 : 1;	
+assign cr_clk2_16_edge_sel	= ctrl_regs[ADDROFF+26][0];	
+
 assign cr_sample_hold_off = ctrl_regs[ADDROFF+27];
 
 //assign temp30 = ctrl_regs[29];
@@ -287,8 +290,12 @@ wire [4:0] bank3_sr_tap = ctrl_regs[ADDROFF+63][4:0];
 //wire [5:0] bank2_sr_tap = ctrl_regs[ADDROFF+62][5:0];
 //wire [5:0] bank3_sr_tap = ctrl_regs[ADDROFF+63][5:0];
 
-wire signed [12:0] chan2_offset = {ctrl_regs[ADDROFF+43][5:0], ctrl_regs[ADDROFF+42]};
-wire signed [12:0] chan5_offset = {ctrl_regs[ADDROFF+50][5:0], ctrl_regs[ADDROFF+49]};
+//wire signed [12:0] chan2_offset = {ctrl_regs[ADDROFF+43][5:0], ctrl_regs[ADDROFF+42]};
+//wire signed [12:0] chan5_offset = {ctrl_regs[ADDROFF+50][5:0], ctrl_regs[ADDROFF+49]};
+
+wire signed [12:0] chanOffset = {ctrl_regs[ADDROFF+2][6:1], ctrl_regs[ADDROFF+0]};
+wire [3:0] chanOffsetSel = ctrl_regs[ADDROFF+26][6:3];
+
 //wire signed [12:0] amp1lim = {ctrl_regs[ADDROFF+44][5:0], ctrl_regs[ADDROFF+45]};
 
 ///// GAIN STAGES //////

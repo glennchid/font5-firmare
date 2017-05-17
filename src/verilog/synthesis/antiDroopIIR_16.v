@@ -5,7 +5,7 @@ module antiDroopIIR_16 (
 	input signed [6:0] tapWeight,
 	input accClr_en,
 	//input oflowClr,
-	output reg oflowDetect = 1'd0,
+	(* shreg_extract = "no" *) output reg oflowDetect = 1'd0,
 	output reg signed [15:0] dout = 16'sd0);
 
 parameter IIR_scale = 15; // define the scaling factor for the IIR multiplier, eg for 0.002 (din = 63, IIR_scale = 15).
