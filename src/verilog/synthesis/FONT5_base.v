@@ -1,23 +1,18 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
+// Company: 	   John Admams Institute at the University of Oxford
+// Engineer: 	   Glenn Christian
 // 
 // Create Date:    09:24:59 10/24/2009 
-// Design Name: 
-// Module Name:    FONT5_9Chan 
-// Project Name: 
-// Target Devices: 
-// Tool versions: 
-// Description: 
+// Design Name:	   font5-firmware
+// Module Name:    FONT5_base 
+// Project Name:   font5_base
+// Target Devices: xc5vlx50t-3ff1136
+// Tool versions:  Xilinx ISE14.7
+// Description:    Pseudo top-level for the FONT5 digital signal processing gateware
 //
 // Dependencies: 
 //
-//
-// Note: the XIL_PAR_ALLOW_LVDS_LOC_OVERRIDE environment variable was set to
-// true to allow MAP to complete.  It complained that about 5 of the p1_xdif
-// data bits were connected backwards to the differential inputs, and would
-// have the wrong polarity.  The env. var. overode this error
 //
 //////////////////////////////////////////////////////////////////////////////////
 module FONT5_base(
@@ -560,6 +555,31 @@ always @(posedge clk40) begin
 	end
 end
 
+/////////////////////////////////////////////////////////////////////////////
+///// Channel Offset De-multiplexer /////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+
+wire signed [12:0] chan1_offset, chan2_offset, chan3_offset;
+wire signed [12:0] chan4_offset, chan5_offset, chan6_offset;
+wire signed [12:0] chan7_offset, chan8_offset, chan9_offset;
+
+
+chanOffsetMUX chanOffsetDeMUX ( 
+	.clk(clk357),
+	.chanOffset(chanOffset),
+	.chanOffsetSel(chanOffsetSel),
+	.chan1_offset(chan1_offset),
+	.chan2_offset(chan2_offset),
+	.chan3_offset(chan3_offset),
+	.chan4_offset(chan4_offset),
+	.chan5_offset(chan5_offset),
+	.chan6_offset(chan6_offset),
+	.chan7_offset(chan7_offset),
+	.chan8_offset(chan8_offset),
+	.chan9_offset(chan9_offset)
+	);
+
+
 // %%%%%%%%%%%%%%%%%%   P1 ADC GROUP ADC_BLOCK MODULE   %%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -622,7 +642,7 @@ reg [1:0] bank1_sr_bypass = 2'b11;
 
 dataRegConvert #(13, ch1_bitflip ^ -13'sd4096) ch1_dataRegConvert(clk357, bank1_sr_bypass, ch1_data_in_del, bank1_sr_tap_c, chan1_data);
 dataRegConvert #(13, ch2_bitflip ^ -13'sd4096) ch2_dataRegConvert(clk357, bank1_sr_bypass, ch2_data_in_del, bank1_sr_tap_c, chan2_data);
-dataRegConvert #(13, ch3_bitflip ^ -13'sd4096) ch3_dataRegConvert(clk357, bank1_sr_bypass, ch3_data_in_del, bank1_sr_tap_c, p1_sum_data);
+dataRegConvert #(13, ch3_bitflip ^ -13'sd4096) ch3_dataRegConvert(clk357, bank1_sr_bypass, ch3_data_in_del, bank1_sr_tap_c, chan3_data);
 //dataRegConvert #(13) ch1_dataRegConvert(clk357, ch1_data_in_del, p1_xdif_data);
 //dataRegConvert #(13) ch2_dataRegConvert(clk357, ch2_data_in_del, p1_ydif_data);
 //dataRegConvert #(13) ch3_dataRegConvert(clk357, ch3_data_in_del, p1_sum_data);
@@ -634,11 +654,15 @@ dataRegConvert #(13, ch3_bitflip ^ -13'sd4096) ch3_dataRegConvert(clk357, bank1_
 
 //Insert Droop Correction Filter 
 
-wire signed [DSP_WIDTH-1:0] chan1_IIR_out, chan1_RAM_data;
+//wire signed [DSP_WIDTH-1:0] chan1_IIR_out, chan1_RAM_data;
 //wire signed [DSP_WIDTH-1:0] p1_ydif_IIR_out, p1_ydif_RAM_data;
-wire signed [DSP_WIDTH-1:0] chan2_IIR_out;
-wire signed [DSP_WIDTH:0] chan2_RAM_data;
-wire signed [DSP_WIDTH-1:0] chan3_IIR_out, chan3_RAM_data;
+wire signed [DSP_WIDTH-1:0] chan1_IIR_out, chan2_IIR_out, chan3_IIR_out;
+wire signed [DSP_WIDTH-1:0] chan1_RAM_data_b, chan2_RAM_data_b, chan3_RAM_data_b;
+reg signed [DSP_WIDTH:0] chan1_RAM_data = 17'd0, chan2_RAM_data = 17'd0, chan3_RAM_data = 17'd0;
+//wire signed [DSP_WIDTH-1:0] chan1_RAM_data, chan3_RAM_data;
+//wire signed [DSP_WIDTH:0] chan2_RAM_data;
+//reg signed [DSP_WIDTH-1:0] chan1_RAM_data = 14'd0, chan2_RAM_data = 14'd0, chan3_RAM_data = 14'd0;
+//wire signed [DSP_WIDTH-1:0] chan3_IIR_out, chan3_RAM_data;
 wire ch1_oflowDet, ch2_oflowDet, ch3_oflowDet;
 
 
@@ -702,6 +726,7 @@ antiDroopIIR #(17) antiDroopIIR_ch3(
 );
 reg bank1_oflowDet = 1'b0;
 wire chan1_offset_oflow, chan2_offset_oflow, chan3_offset_oflow;
+//wire chan2_offset_oflow;
 //reg signed [12:0] chan2_offset_a = 13'd0, chan2_offset_b = 13'd0;
 //reg signed [12:0] chan5_offset_a = 13'd0, chan5_offset_b = 13'd0;
 
@@ -710,6 +735,12 @@ always @(posedge clk357) begin
 //chan2_offset_b <= chan2_offset_a;
 //chan5_offset_a <= chan5_offset;
 //chan5_offset_b <= chan5_offset_a;
+//chan1_RAM_data <= ((~IIRbypass_b[0]) ? {chan1_data[12:0], 3'b000} : chan1_IIR_out);// + {chan1_offset, 3'b000};
+//chan2_RAM_data <= ((~IIRbypass_b[1]) ? {chan2_data[12:0], 3'b000} : chan2_IIR_out);// + {chan2_offset, 3'b000};
+//chan3_RAM_data <= ((~IIRbypass_b[2]) ? {chan3_data[12:0], 3'b000} : chan3_IIR_out);// + {chan3_offset, 3'b000};
+chan1_RAM_data <= chan1_RAM_data_b + {chan1_offset, 3'b000};
+chan2_RAM_data <= chan2_RAM_data_b + {chan2_offset, 3'b000};
+chan3_RAM_data <= chan3_RAM_data_b + {chan3_offset, 3'b000};
 bank1_oflowDet <= (ch1_oflowDet | ch2_oflowDet | ch3_oflowDet | chan1_offset_oflow | chan2_offset_oflow | chan3_offset_oflow);
 //bank1_oflowDet <= (ch1_oflowDet | ch2_oflowDet | ch3_oflowDet);
 end
@@ -717,9 +748,9 @@ end
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data_fix : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data_fix : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data_fix : p1_sum_IIR_out;
-assign chan1_RAM_data = ((~IIRbypass_b[0]) ? {chan1_data, 3'b000} : chan1_IIR_out) + {chan1_offset, 3'b000};
-assign chan2_RAM_data = ((~IIRbypass_b[1]) ? {chan2_data, 3'b000} : chan2_IIR_out) + {chan2_offset, 3'b000};
-assign chan3_RAM_data = ((~IIRbypass_b[2]) ? {chan3_data, 3'b000} : chan3_IIR_out) + {chan3_offset, 3'b000};
+assign chan1_RAM_data_b = ((~IIRbypass_b[0]) ? {chan1_data, 3'b000} : chan1_IIR_out);// + {chan1_offset, 3'b000};
+assign chan2_RAM_data_b = ((~IIRbypass_b[1]) ? {chan2_data, 3'b000} : chan2_IIR_out);// + {chan2_offset, 3'b000};
+assign chan3_RAM_data_b = ((~IIRbypass_b[2]) ? {chan3_data, 3'b000} : chan3_IIR_out);// + {chan3_offset, 3'b000};
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data : p1_sum_IIR_out;
@@ -731,6 +762,10 @@ assign chan3_RAM_data = ((~IIRbypass_b[2]) ? {chan3_data, 3'b000} : chan3_IIR_ou
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data : p1_sum_corr;
 
 assign chan1_offset_oflow = (^chan1_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
+//assign chan1_offset_oflow = (^chan1_data[13:12]) ? 1'b1 : 1'b0;
+//assign chan2_offset_oflow = (^chan2_data[13:12]) ? 1'b1 : 1'b0;
+//assign chan3_offset_oflow = (^chan3_data[13:12]) ? 1'b1 : 1'b0;
+
 assign chan2_offset_oflow = (^chan2_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 assign chan3_offset_oflow = (^chan3_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 
@@ -868,12 +903,18 @@ dataRegConvert #(13, ch6_bitflip ^ -13'sd4096) ch6_dataRegConvert(clk357, bank2_
 
 //Insert P2 Droop Correction Filters 
 
-wire signed [DSP_WIDTH-1:0] chan4_IIR_out, chan4_RAM_data;
+//wire signed [DSP_WIDTH-1:0] chan4_IIR_out, chan4_RAM_data;
 //wire signed [DSP_WIDTH-1:0] p2_ydif_IIR_out, p2_ydif_RAM_data;
-wire signed [DSP_WIDTH-1:0] chan5_IIR_out;
-wire signed [DSP_WIDTH:0] chan5_RAM_data;
+//wire signed [DSP_WIDTH-1:0] chan5_IIR_out;
+//wire signed [DSP_WIDTH:0] chan5_RAM_data;
 
-wire signed [DSP_WIDTH-1:0] chan6_IIR_out, chan6_RAM_data;
+wire signed [DSP_WIDTH-1:0] chan4_IIR_out, chan5_IIR_out, chan6_IIR_out;
+reg signed [DSP_WIDTH:0] chan4_RAM_data = 17'd0, chan5_RAM_data = 17'd0, chan6_RAM_data = 17'd0;
+wire signed [DSP_WIDTH-1:0] chan4_RAM_data_b, chan5_RAM_data_b, chan6_RAM_data_b;
+//wire signed [DSP_WIDTH-1:0] chan4_RAM_data, chan6_RAM_data;
+//wire signed [DSP_WIDTH:0] chan5_RAM_data;
+
+//wire signed [DSP_WIDTH-1:0] chan6_IIR_out, chan6_RAM_data;
 wire ch4_oflowDet, ch5_oflowDet, ch6_oflowDet;
 
 
@@ -913,6 +954,7 @@ antiDroopIIR #(17) antiDroopIIR_ch6(
 
 reg bank2_oflowDet = 1'b0;
 wire chan4_offset_oflow, chan5_offset_oflow, chan6_offset_oflow;
+//wire chan5_offset_oflow;
 always @(posedge clk357) begin
 bank2_sr_tap_a <= bank2_sr_tap;
 bank2_sr_tap_b <= bank2_sr_tap_a;
@@ -924,16 +966,21 @@ case (bank2_sr_tap_b)
 	endcase
 bank2_oflowDet <= (ch4_oflowDet | ch5_oflowDet | ch6_oflowDet | chan4_offset_oflow | chan5_offset_oflow | chan6_offset_oflow);
 //bank2_oflowDet <= (ch4_oflowDet | ch5_oflowDet | ch6_oflowDet);
-
+//chan4_RAM_data <= ((~IIRbypass_b[3]) ? {chan4_data, 3'b000} : chan4_IIR_out);// + {chan4_offset, 3'b000};
+//chan5_RAM_data <= ((~IIRbypass_b[4]) ? {chan5_data, 3'b000} : chan5_IIR_out);// + {chan5_offset, 3'b000};
+//chan6_RAM_data <= ((~IIRbypass_b[5]) ? {chan6_data, 3'b000} : chan6_IIR_out);// + {chan6_offset, 3'b000};
+chan4_RAM_data <= chan4_RAM_data_b + {chan4_offset, 3'b000};
+chan5_RAM_data <= chan5_RAM_data_b + {chan5_offset, 3'b000};
+chan6_RAM_data <= chan6_RAM_data_b + {chan6_offset, 3'b000};
 end
 
 //assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data_fix : p2_xdif_IIR_out;
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data_fix : p2_ydif_IIR_out;
 //assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data_fix : p2_sum_IIR_out;
-assign chan4_RAM_data = ((~IIRbypass_b[3]) ? {chan4_data, 3'b000} : chan4_IIR_out) + {chan4_offset, 3'b000};
-assign chan5_RAM_data = ((~IIRbypass_b[4]) ? {chan5_data, 3'b000} : chan5_IIR_out) + {chan5_offset, 3'b000};
+assign chan4_RAM_data_b = ((~IIRbypass_b[3]) ? {chan4_data, 3'b000} : chan4_IIR_out);// + {chan4_offset, 3'b000};
+assign chan5_RAM_data_b = ((~IIRbypass_b[4]) ? {chan5_data, 3'b000} : chan5_IIR_out);// + {chan5_offset, 3'b000};
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out;
-assign chan6_RAM_data = ((~IIRbypass_b[5]) ? {chan6_data, 3'b000} : chan6_IIR_out) + {chan6_offset, 3'b000};
+assign chan6_RAM_data_b = ((~IIRbypass_b[5]) ? {chan6_data, 3'b000} : chan6_IIR_out);// + {chan6_offset, 3'b000};
 //assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data : p2_xdif_IIR_out;
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data : p2_ydif_IIR_out;
 //assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data : p2_sum_IIR_out;
@@ -941,6 +988,9 @@ assign chan6_RAM_data = ((~IIRbypass_b[5]) ? {chan6_data, 3'b000} : chan6_IIR_ou
 assign chan4_offset_oflow = (^chan4_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 assign chan5_offset_oflow = (^chan5_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 assign chan6_offset_oflow = (^chan6_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
+//assign chan4_offset_oflow = (^chan4_data[13:0]) ? 1'b1 : 1'b0;
+//assign chan5_offset_oflow = (^chan5_data[13:0]) ? 1'b1 : 1'b0;
+//assign chan6_offset_oflow = (^chan6_data[13:0]) ? 1'b1 : 1'b0;
 
 // %%%%%%%%%%%%%%%%%%   P2 ADC GROUP DAQ_RAM MODULES   %%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1073,9 +1123,13 @@ dataRegConvert #(13, ch9_bitflip ^ -13'sd4096) ch9_dataRegConvert(clk357, bank3_
 
 //Insert P3 Droop Correction Filters 
 
-wire signed [DSP_WIDTH-1:0] chan7_IIR_out, chan7_RAM_data;
-wire signed [DSP_WIDTH-1:0] chan8_IIR_out, chan8_RAM_data;
-wire signed [DSP_WIDTH-1:0] chan9_IIR_out, chan9_RAM_data;
+//wire signed [DSP_WIDTH-1:0] chan7_IIR_out, chan7_RAM_data;
+//wire signed [DSP_WIDTH-1:0] chan8_IIR_out, chan8_RAM_data;
+//wire signed [DSP_WIDTH-1:0] chan9_IIR_out, chan9_RAM_data;
+
+wire signed [DSP_WIDTH-1:0] chan7_IIR_out, chan8_IIR_out, chan9_IIR_out;
+wire signed [DSP_WIDTH-1:0] chan7_RAM_data_b, chan8_RAM_data_b, chan9_RAM_data_b;
+reg signed [DSP_WIDTH:0] chan7_RAM_data = 17'd0, chan8_RAM_data = 17'd0, chan9_RAM_data = 17'd0;
 wire ch7_oflowDet, ch8_oflowDet, ch9_oflowDet;
 
 
@@ -1124,15 +1178,22 @@ case (bank3_sr_tap_b)
 	5'd1: bank3_sr_bypass <= 2'b10;
 	default: bank3_sr_bypass <= 2'b00;
 	endcase
-bank3_oflowDet <= (ch7_oflowDet | ch8_oflowDet | ch9_oflowDet | chan7_offset_oflow | chan8_offset_oflow | chan9_ofsfet_oflow);
+bank3_oflowDet <= (ch7_oflowDet | ch8_oflowDet | ch9_oflowDet | chan7_offset_oflow | chan8_offset_oflow | chan9_offset_oflow);
+//bank3_oflowDet <= (ch7_oflowDet | ch8_oflowDet | ch9_oflowDet);
+//chan7_RAM_data <= ((~IIRbypass_b[6]) ? {chan7_data, 3'b000} : chan7_IIR_out);// + {chan7_offset, 3'b000};
+//chan8_RAM_data <= ((~IIRbypass_b[7]) ? {chan8_data, 3'b000} : chan8_IIR_out);// + {chan8_offset, 3'b000};
+//chan9_RAM_data <= ((~IIRbypass_b[8]) ? {chan9_data, 3'b000} : chan9_IIR_out);// + {chan9_offset, 3'b000};
+chan7_RAM_data <= chan7_RAM_data_b + {chan7_offset, 3'b000};
+chan8_RAM_data <= chan8_RAM_data_b + {chan8_offset, 3'b000};
+chan9_RAM_data <= chan9_RAM_data_b + {chan9_offset, 3'b000};
 end
 
 //assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data_fix : p3_xdif_IIR_out;
 //assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data_fix : p3_ydif_IIR_out;
 //assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data_fix : p3_sum_IIR_out;
-assign chan7_RAM_data = ((~IIRbypass_b[6]) ? {chan7_data, 3'b000} : chan7_IIR_out) + {chan7_offset, 3'b000};
-assign chan8_RAM_data = ((~IIRbypass_b[7]) ? {chan8_data, 3'b000} : chan8_IIR_out) + {chan8_offset, 3'b000};
-assign chan9_RAM_data = ((~IIRbypass_b[8]) ? {chan9_data, 3'b000} : chan9_IIR_out) + {chan9_offset, 3'b000};
+assign chan7_RAM_data_b = ((~IIRbypass_b[6]) ? {chan7_data, 3'b000} : chan7_IIR_out);// + {chan7_offset, 3'b000};
+assign chan8_RAM_data_b = ((~IIRbypass_b[7]) ? {chan8_data, 3'b000} : chan8_IIR_out);// + {chan8_offset, 3'b000};
+assign chan9_RAM_data_b = ((~IIRbypass_b[8]) ? {chan9_data, 3'b000} : chan9_IIR_out);// + {chan9_offset, 3'b000};
 //assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data : p3_xdif_IIR_out;
 //assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data : p3_ydif_IIR_out;
 //assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data : p3_sum_IIR_out;
@@ -1140,6 +1201,9 @@ assign chan9_RAM_data = ((~IIRbypass_b[8]) ? {chan9_data, 3'b000} : chan9_IIR_ou
 assign chan7_offset_oflow = (^chan7_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 assign chan8_offset_oflow = (^chan8_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 assign chan9_offset_oflow = (^chan9_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
+//assign chan7_offset_oflow = (^chan7_data[13:12]) ? 1'b1 : 1'b0;
+//assign chan8_offset_oflow = (^chan8_data[13:12]) ? 1'b1 : 1'b0;
+//assign chan9_offset_oflow = (^chan9_data[13:12]) ? 1'b1 : 1'b0;
 
 
 // %%%%%%%%%%%%%%%%%%   P3 ADC GROUP DAQ_RAM MODULES   %%%%%%%%%%%%%%%%%%%%%
@@ -1186,8 +1250,8 @@ DAQ_RAM daq_ram_chan8(
 );
 
 reg 			daq_chan9_tx_en = 1'b0;
-wire 			daq_p3_sum_tx_done;
-//wire [7:0] 	daq_chan9_tx_data;
+wire 			daq_chan9_tx_done;
+//wire [7:0] 	daq_p3_sum_tx_data;
 wire [6:0] 	daq_chan9_tx_data;
 wire 			daq_chan9_tx_load;
 DAQ_RAM daq_ram_chan9(
