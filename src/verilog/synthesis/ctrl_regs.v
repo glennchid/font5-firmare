@@ -131,7 +131,7 @@ assign DAC2phase = ctrl_regs[88][6];
 //wire [6:0] temp11, temp12, temp14, temp15, temp16, temp17;
 //wire [6:0] temp18, temp19, temp20, temp21, temp22, temp23, temp24, temp25, temp26, temp27, temp28, temp29, temp30; //, temp14;
 //wire [6:0] temp30;
-wire [6:0] temp27,temp28;
+wire [6:0] temp27,temp28,temp11;
 //assign temp1 = ctrl_regs[32];
 assign p1_align_ch_sel = ctrl_regs[ADDROFF+32][1:0];
 assign baud_rate = ctrl_regs[ADDROFF+32][3:2];
@@ -166,11 +166,11 @@ assign p3_scan_delay = ctrl_regs[ADDROFF+40][5:0];
 
 //assign temp17 = ctrl_regs[41];
 assign master357_delay	= ctrl_regs[ADDROFF+41][5:0];
+//
+assign temp11 = ctrl_regs[ADDROFF+43];
+assign k1_b2_offset = {temp11[5:0], ctrl_regs[ADDROFF+42]};
 
-/*assign temp11 = ctrl_regs[43];
-assign k1_b2_offset = {temp11[5:0], ctrl_regs[42]};
-
-assign temp12 = ctrl_regs[45];
+/*assign temp12 = ctrl_regs[45];
 assign k1_b3_offset = {temp12[5:0], ctrl_regs[44]};*/
 
 assign diginput1_code = ctrl_regs[ADDROFF+46][2:0];
@@ -270,7 +270,8 @@ assign k1_const_dac_en = temp27[4];
 assign k2_const_dac_en = temp27[5];
 			
 assign temp28 = ctrl_regs[23];
-assign k1_const_dac_out	= {temp28[5:0], ctrl_regs[22]};
+//assign k1_const_dac_out	= {temp28[5:0], ctrl_regs[22]};
+assign k1_const	= {temp28[5:0], ctrl_regs[22]};
 
 /*assign temp29 = ctrl_regs[25];
 assign k2_const_dac_out	= {temp29[5:0], ctrl_regs[24]};*/

@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 	   John Admams Institute at the University of Oxford
+// Company: 	   John Adams Institute at the University of Oxford
 // Engineer: 	   Glenn Christian
 // 
 // Create Date:    09:24:59 10/24/2009 
@@ -13,6 +13,7 @@
 //
 // Dependencies: 
 //
+
 //
 //////////////////////////////////////////////////////////////////////////////////
 module FONT5_base(
@@ -1445,7 +1446,7 @@ FBModule my_FBmod(
 	   .bq_in(p2_ydif_data),
 		.ci_in(p3_xdif_data),
 		.cq_in(p3_ydif_data),
-		.q_signal(p1_sum_data),
+		.q_signal(p3_sum_data),
 		.bpm_lut_dinb(gainlut_ld_data),
 		.bpm_lut_addrb(gainlut_ld_addr),
 		.bpm1_i_lut_web(k1_p2_lut_wr_en),
@@ -1462,7 +1463,7 @@ FBModule my_FBmod(
 		.delay_en(k1_delayloop_on),
 		.store_strb(store_strb),
 	   .slow_clk(clk40),
-		.banana_corr(k1_b2_offset),
+		.banana_corr_temp(k1_b2_offset),
 		.const_dac(k1constDAC),
 		.const_dac_en(k1_const_dac_en),
 		.dac_cond(dac1_clk),
