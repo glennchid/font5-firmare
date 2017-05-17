@@ -1,0 +1,25 @@
+INFO:sim:172 - Generating IP...
+Applying current project options...
+Finished applying current project options.
+Resolving generics for 'lookuptable2'...
+ERROR:sim - Unable to find C:\Users\ramjiawan\Documents\Postgraduate Oxford
+ERROR:sim -    Physics Work\Firmware\lut_aq.coe
+ERROR:sim -    Coregen is looking for C:\Users\ramjiawan\Documents\Postgraduate
+   Oxford
+ERROR:sim -    Physics Work\Firmware\lut_aq.coe
+ERROR:sim - Unable to find C:\Users\ramjiawan\Documents\Postgraduate Oxford
+ERROR:sim -    Physics Work\Firmware\lut_aq.coe
+ERROR:sim -    Coregen is looking for C:\Users\ramjiawan\Documents\Postgraduate
+   Oxford
+ERROR:sim -    Physics Work\Firmware\lut_aq.coe
+ERROR:sim - IP initializer could not set IP core parameters on IP model
+ERROR:sim - Unable to find C:\Users\ramjiawan\Documents\Postgraduate Oxford
+ERROR:sim -    Physics Work\Firmware\lut_aq.coe
+ERROR:sim -    Coregen is looking for C:\Users\ramjiawan\Documents\Postgraduate
+   Oxford
+ERROR:sim -    Physics Work\Firmware\lut_aq.coe
+ERROR:sim - Failed to initialize IP model.
+ERROR:sim - Failed executing Tcl generator.
+ERROR:sim - Failed to generate 'lookuptable2'.  Failed executing Tcl generator.
+
+Wrote CGP file for project 'lookuptable2'.
