@@ -52,4 +52,5 @@ LUTROM\simulation\timing\wave_mti.do
 LUTROM\simulation\timing\wave_ncsim.sv
 LUTROM_flist.txt
 LUTROM_xmdf.tcl
+_xmsgs\pn_parser.xmsgs
 summary.log
