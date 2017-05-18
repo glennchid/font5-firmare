@@ -3,6 +3,12 @@
 // Declare controls as named wires
 
 //old 40 MHz
+wire [1:0] bpm_sel;
+wire [1:0] no_bunches;
+wire [3:0] no_samples;
+wire [7:0] sample_spacing;
+wire [7:0] b1_strobe;
+wire [7:0] b2_strobe;
 wire 	[1:0]		p1_align_ch_sel;	
 wire 	[1:0]		p2_align_ch_sel;
 wire 	[1:0]		p3_align_ch_sel;
@@ -13,7 +19,7 @@ wire 	[5:0]		p1_scan_delay;
 wire 	[5:0]		p2_scan_delay;
 wire 	[5:0]		p3_scan_delay;
 wire 	[5:0]		master357_delay;
-//wire 	[12:0]	k1_b2_offset;
+wire 	[12:0]	k1_b2_offset;
 //wire 	[12:0]	k1_b3_offset;
 wire	[2:0]		diginput1_code;
 wire	[2:0] 	diginput2_code;
@@ -65,13 +71,13 @@ wire 	[7:0]		p2_bunch2pos;
 wire 	[7:0]		p2_bunch3pos;		
 wire 	[7:0]		p3_bunch1pos;		
 wire 	[7:0]		p3_bunch2pos;			
-wire 	[7:0]		p3_bunch3pos;			
+wire 	[7:0]		p3_bunch3pos;*/			
 wire 				k1_fb_on;				
-wire 				k2_fb_on;				
+//wire 				k2_fb_on;			
 wire			 	k1_delayloop_on;			
-wire 				k2_delayloop_on;			
+//wire 				k2_delayloop_on; 		
 wire 				k1_const_dac_en;			
-wire 				k2_const_dac_en;			
+/*wire 				k2_const_dac_en;			
 wire 	[12:0]	k1_const_dac_out;		
 wire  [12:0]	k2_const_dac_out;	*/	
 wire 				cr_clk2_16_edge_sel;		
@@ -89,6 +95,13 @@ wire signed [12:0] k1_const, k2_const;
 //wire signed [6:0] k1_gain, k2_gain;
 
 
+assign bpm_sel=ctrl_regs[70][1:0];
+assign no_bunches=ctrl_regs[70][3:2];
+assign no_samples=ctrl_regs[71][3:0];
+assign sample_spacing=ctrl_regs[67];
+assign b1_strobe=ctrl_regs[68];
+assign b2_strobe=ctrl_regs[69];
+
 assign FF_en = ctrl_regs[43][0]; 
 assign Interleave = ctrl_regs[43][1];
 assign use_strbs = ctrl_regs[39][0]; 
@@ -102,8 +115,8 @@ assign k2_del = ctrl_regs[44][6:2];
 assign FFOpMode = ctrl_regs[44][1:0];
 //sign k1_const = {ctrl_regs[46][5:0], ctrl_regs[45]};
 //assign k2_const = {ctrl_regs[48][5:0], ctrl_regs[47]};
-assign k1_const = {ctrl_regs[86][5:0], ctrl_regs[87]};
-assign k2_const = {ctrl_regs[88][5:0], ctrl_regs[89]};
+//assign k1_const = {ctrl_regs[86][5:0], ctrl_regs[87]};
+//assign k2_const = {ctrl_regs[88][5:0], ctrl_regs[89]};
 
 //assign k1_gain = ctrl_regs[49];
 //assign k2_gain = ctrl_regs[50];
@@ -118,7 +131,7 @@ assign DAC2phase = ctrl_regs[88][6];
 //wire [6:0] temp11, temp12, temp14, temp15, temp16, temp17;
 //wire [6:0] temp18, temp19, temp20, temp21, temp22, temp23, temp24, temp25, temp26, temp27, temp28, temp29, temp30; //, temp14;
 //wire [6:0] temp30;
-
+wire [6:0] temp27,temp28;
 //assign temp1 = ctrl_regs[32];
 assign p1_align_ch_sel = ctrl_regs[ADDROFF+32][1:0];
 assign baud_rate = ctrl_regs[ADDROFF+32][3:2];
@@ -246,20 +259,20 @@ assign p3_bunch1pos  = {temp24[0], ctrl_regs[15]};
 assign temp25 = ctrl_regs[18];
 assign p3_bunch2pos  = {temp25[0], ctrl_regs[17]};
 assign temp26 = ctrl_regs[20];
-assign p3_bunch3pos  = {temp26[0], ctrl_regs[19]};
+assign p3_bunch3pos  = {temp26[0], ctrl_regs[19]};*/
 		
-assign temp27 = ctrl_regs[21];
+assign temp27 = ctrl_regs[ADDROFF+21];
 assign k1_fb_on = temp27[0];				
-assign k2_fb_on = temp27[1];				
+//assign k2_fb_on = temp27[1];	*/			
 assign k1_delayloop_on = temp27[2];			
-assign k2_delayloop_on = temp27[3];			
+/*assign k2_delayloop_on = temp27[3]; */			
 assign k1_const_dac_en = temp27[4];			
 assign k2_const_dac_en = temp27[5];
 			
 assign temp28 = ctrl_regs[23];
 assign k1_const_dac_out	= {temp28[5:0], ctrl_regs[22]};
 
-assign temp29 = ctrl_regs[25];
+/*assign temp29 = ctrl_regs[25];
 assign k2_const_dac_out	= {temp29[5:0], ctrl_regs[24]};*/
 
 //assign cr_clk2_16_edge_sel	= (ctrl_regs[ADDROFF+26]==0) ? 0 : 1;	

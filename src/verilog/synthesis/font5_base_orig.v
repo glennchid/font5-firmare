@@ -144,11 +144,7 @@ reg [CR_WIDTH-1:0] ctrl_regs [0:N_CTRL_REGS-1];
 reg [CR_WIDTH-1:0] ctrl_regs_mem [0:N_CTRL_REGS-1];
 
 //`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs.v"
-`ifdef BUILD_CTF
-	`include "ctrl_regs.v"
-`else
-	`include "ctrl_regs_ATF.v"
-`endif
+`include "ctrl_regs.v"
 //`ifdef XILINX_ISIM 
 //	`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs_init_sim.v"
 //`else 
@@ -1383,8 +1379,6 @@ wire [12:0] k2constDAC = (constDAC2UARTor) ? {uart2_rx_data, 5'd0} : k2_const;
 `endif
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ////
 
-`ifdef BUILD_CTF
-
 PFF_DSP_16 loop (
 	.clk(clk357),
 	.store_strb(store_strb),
@@ -1436,44 +1430,6 @@ PFF_DSP_16 loop (
 	//.DAC4_en(dac4_clk)
 	);
 
-`endif	
-
-`ifdef BUILD_ATF
-FBModule my_FBmod(
-		.clk(clk357),
-		.sel(bpm_sel),
-		.ai_in(p1_xdif_data),
-		.aq_in(p1_ydif_data),
-		.bi_in(p2_xdif_data),
-	   .bq_in(p2_ydif_data),
-		.ci_in(p3_xdif_data),
-		.cq_in(p3_ydif_data),
-		.q_signal(p1_sum_data),
-		.bpm_lut_dinb(gainlut_ld_data),
-		.bpm_lut_addrb(gainlut_ld_addr),
-		.bpm1_i_lut_web(k1_p2_lut_wr_en),
-		.bpm1_i_lut_doutb(bpm1_i_lut_doutb),
-		.bpm1_q_lut_web(k1_p3_lut_wr_en),
-		.bpm1_q_lut_doutb(bpm1_q_lut_doutb),
-		.bpm2_i_lut_web(k2_p2_lut_wr_en),
-		.bpm2_i_lut_doutb(bpm2_i_lut_doutb),
-		.bpm2_q_lut_web(k2_p3_lut_wr_en),
-		.bpm2_q_lut_doutb(bpm2_q_lut_doutb),
-		.fb_sgnl(dac1_out),
-		.b1_strobe_b(b1_strobe),
-		.b2_strobe_b(b2_strobe),
-		.delay_en(k1_delayloop_on),
-		.store_strb(store_strb),
-	   .slow_clk(clk40),
-		.banana_corr(k1_b2_offset),
-		.const_dac(k1constDAC),
-		.const_dac_en(k1_const_dac_en),
-		.dac_cond(dac1_clk),
-		.no_bunches_b(no_bunches),
-		.no_samples_b(no_samples),
-		.sample_spacing_b(sample_spacing)
-		);
-`endif
 
 //assign dac3_clk = dac1_clk;
 //assign dac4_clk = dac2_clk;
@@ -1976,13 +1932,6 @@ uart_decoder3 uart_decoder (
 assign trim_lut_wr_en = (gainlut_ld_select == 5'd2) ? gainlut_ld_en : 1'b0;
 //assign k2_p2_lut_wr_en = (gainlut_ld_select == 5'd3) ? gainlut_ld_en : 1'b0;
 //assign k2_p3_lut_wr_en = (gainlut_ld_select == 5'd4) ? gainlut_ld_en : 1'b0;
-
-`ifdef BUILD_ATF
-	wire k1_p2_lut_wr_en = (gainlut_ld_select == 5'd0) ? gainlut_ld_en : 1'b0;
-	wire k1_p3_lut_wr_en = (gainlut_ld_select == 5'd1) ? gainlut_ld_en : 1'b0;
-	wire k2_p2_lut_wr_en = (gainlut_ld_select == 5'd3) ? gainlut_ld_en : 1'b0;
-	wire k2_p3_lut_wr_en = (gainlut_ld_select == 5'd4) ? gainlut_ld_en : 1'b0;
-`endif
 
 // ******* Control Registers *******************
 
