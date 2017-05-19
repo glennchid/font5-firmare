@@ -21,7 +21,6 @@
 module LUTCalc(
 									  input clk,
 									  input slow_clk,
-									  input store_strb,
 									  input [6:0] bpm1_i_lut_dinb,
 									  input [14:0] bpm1_i_lut_addrb,
 									  input bpm1_i_lut_web,
@@ -43,8 +42,7 @@ module LUTCalc(
 									  output reg signed [20:0] bpm1_q_lut_out,
 									  output reg signed [20:0] bpm2_i_lut_out,
 									  output reg signed [20:0] bpm2_q_lut_out,
-								     input [7:0] b2_strobe,
-									  input LUTcond
+								     input LUTcond
 									 
 									  
     );

@@ -25,12 +25,12 @@
 									  input [1:0] no_bunches_b,
 									  input [3:0] no_samples_b,
 									  input [7:0] sample_spacing_b,
-								(* IOB = "true" *) 	  output reg [12:0] fb_sgnl,
+		(* IOB = "true" *) 	  output reg [12:0] fb_sgnl,
 									  output [6:0] bpm2_i_lut_doutb,
 						    		  output [6:0] bpm2_q_lut_doutb,
 									  output [6:0] bpm1_i_lut_doutb,
 									  output [6:0] bpm1_q_lut_doutb,
-								(* IOB = "true" *) 	  output dac_clk,
+	  (* IOB = "true" *) 	  output dac_clk,
 									  output reg oflow
                              );
                             
@@ -40,6 +40,7 @@ wire signed [16:0] bpm2_i_reg_int;
 wire signed [16:0] bpm2_q_reg_int;
 //wire dac_clk;
 reg dac_cond;
+reg signed [12:0] charge;
 
 (* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [1:0] no_bunches_a,no_bunches;
 (* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [3:0] no_samples_a, no_samples;
@@ -58,6 +59,7 @@ b1_strobe_a<=b1_strobe_b;
 b1_strobe<=b1_strobe_a;
 b2_strobe_a<=b2_strobe_b;
 b2_strobe<=b2_strobe_a;
+charge<=q_signal;
 end 
 
 
@@ -126,13 +128,11 @@ LUTCalc	LookUpTableModule(
 									  .bpm2_q_lut_addrb(bpm_lut_addrb),
 									  .bpm2_q_lut_web(bpm2_q_lut_web),
 									  .bpm2_q_lut_doutb(bpm2_q_lut_doutb),
-									  .q_signal(q_signal),
+									  .q_signal(charge),
 									  .bpm1_i_lut_out(g1_inv_q),
 									  .bpm1_q_lut_out(g2_inv_q),
 									  .bpm2_i_lut_out(g3_inv_q),
 									  .bpm2_q_lut_out(g4_inv_q),
-									  .store_strb(store_strb),
-									  .b2_strobe(b2_strobe), // for reference signal
 									  .LUTcond(LUTcond)
 									
     );
@@ -144,6 +144,7 @@ LUTCalc	LookUpTableModule(
 //wire signed [12:0] DSPout, DSPout2, DSPout3, DSPout4;
 wire signed [14:0] pout, pout2, pout3, pout4;
 reg signed [12:0] banana_corr;
+wire DSPoflow1, DSPoflow2, DSPoflow3, DSPoflow4;
 
 //wire signed [47:0] pout_a, pout2_a, pout3_a, pout4_a;
 DSPCalcModule DSPModule1(
@@ -153,7 +154,8 @@ DSPCalcModule DSPModule1(
 			.clk(clk),
 			.store_strb(store_strb),
 			.pout(pout),
-			.bunch_strb(bunch_strb)
+			.bunch_strb(bunch_strb),
+			.DSPoflow(DSPoflow1)
 //			.banana_corr(banana_corr),
 //			.fb_cond(fb_cond),
 //			.dac_clk(dac_clk)
@@ -168,7 +170,8 @@ DSPCalcModule DSPModule2(
 			.pout(pout2),
 			.bunch_strb(bunch_strb),
 			.fb_cond(fb_cond),
-			.dac_clk(dac_clk)
+			.dac_clk(dac_clk),
+			.DSPoflow(DSPoflow2)
 //			.banana_corr(banana_corr)
 			);
 			
@@ -179,7 +182,8 @@ DSPCalcModule DSPModule3(
 			.clk(clk),
 			.store_strb(store_strb),
 			.pout(pout3),
-			.bunch_strb(bunch_strb)
+			.bunch_strb(bunch_strb),
+			.DSPoflow(DSPoflow3)
 //			.fb_cond(fb_cond),
 //			.dac_clk(dac_clk)
 //			.banana_corr(banana_corr)
@@ -192,7 +196,8 @@ DSPCalcModule DSPModule4(
 			.clk(clk),
 			.store_strb(store_strb),
 			.pout(pout4),
-			.bunch_strb(bunch_strb)
+			.bunch_strb(bunch_strb),
+			.DSPoflow(DSPoflow4)
 //			.fb_cond(fb_cond),
 //			.dac_clk(dac_clk)
 //			.banana_corr(banana_corr)
@@ -206,6 +211,7 @@ reg output_cond1, output_cond2;
 //reg oflowadd=0;
 reg signed [14:0] fb_sgnl_full=0;
 //reg dac_clk;
+reg oflow_temp;
 
 
 always @ (posedge clk)begin
@@ -219,7 +225,8 @@ output_cond2<=dac_cond & const_dac_en;
 ////oflow2<=((&sum1[15:12]==0)&(&!sum1[15:12]==0))|((&sum2[15:12]==0)&(&!sum2[15:12]==0));
 //oflowsum1<=(~&sum1[14:12] && ~&(~sum1[14:12]));
 //oflowsum2<=(~&sum2[14:12] && ~&(~sum2[14:12]));
-oflow<=(~&fb_sgnl_full[14:12] && ~&(~fb_sgnl_full[14:12]));
+oflow_temp<=(~&fb_sgnl_full[14:12] && ~&(~fb_sgnl_full[14:12]));
+oflow<=oflow_temp|DSPoflow1|DSPoflow2|DSPoflow3|DSPoflow4;
 if (~store_strb) fb_sgnl<=0;
 else begin
 if (output_cond1) begin

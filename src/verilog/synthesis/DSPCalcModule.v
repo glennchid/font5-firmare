@@ -26,9 +26,11 @@ module DSPCalcModule(
 			input store_strb,
 			output reg signed [14:0] pout,
 			input bunch_strb,
+			output reg DSPoflow,
 //			input signed [12:0] banana_corr,
 			output reg fb_cond,
 			output reg dac_clk
+			
 //			input fb_en
 		
     );
@@ -40,7 +42,7 @@ reg signed [37:0]  DSPtemp;
 reg signed [14:0] delayed; 
 //initial DSPout=0;
 reg signed [37:0] DSPout;
-reg DSPoflow=1'b0;
+//reg DSPoflow=1'b0;
 
 
 always @ (posedge clk) begin
