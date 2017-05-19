@@ -21,16 +21,16 @@
 module MuxModule(
 	input bunch_strb,
 	input [1:0] sel,
-   input signed [12:0] ai_in,
+   input signed[12:0] ai_in,
    input signed [12:0] aq_in,
    input signed [12:0] bi_in,
    input signed [12:0] bq_in,
    input signed [12:0] ci_in,
    input signed [12:0] cq_in,
-	output reg signed [16:0] bpm1_q_reg_int_a, 
-	output reg signed [16:0] bpm1_i_reg_int_a, 
-	output reg signed [16:0] bpm2_q_reg_int_a, 
-	output reg signed [16:0] bpm2_i_reg_int_a,
+	output reg signed [14:0] bpm1_q_reg_int_a, 
+	output reg signed [14:0] bpm1_i_reg_int_a, 
+	output reg signed [14:0] bpm2_q_reg_int_a, 
+	output reg signed [14:0] bpm2_i_reg_int_a,
 	input clk,
 	input dac_cond
   
@@ -38,7 +38,7 @@ module MuxModule(
 
 //(* equivalent_register_removal = "no"*) reg [6:0] j;
 wire signed [12:0] bpm1_i, bpm1_q, bpm2_i, bpm2_q; 
-(* equivalent_register_removal = "no"*)reg signed [16:0] bpm1_i_reg_int,bpm1_q_reg_int,bpm2_i_reg_int,bpm2_q_reg_int;
+(* equivalent_register_removal = "no"*)reg signed [14:0] bpm1_i_reg_int,bpm1_q_reg_int,bpm2_i_reg_int,bpm2_q_reg_int;
 initial begin 
 bpm1_i_reg_int=0;
 bpm1_q_reg_int=0;

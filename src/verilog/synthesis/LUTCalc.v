@@ -65,7 +65,7 @@ lookuptable1 bpm1_i_lut_inst (
 	.web(bpm1_i_lut_web), // Bus [0 : 0] 
 	.doutb(bpm1_i_lut_doutb)); // Bus [6 : 0] 
 	
-lookuptable2 bpm1_q_lut_inst (
+lookuptable1 bpm1_q_lut_inst (
 	.clka(clk),
 	.dina(), // Bus [27 : 0] 
 	.addra(q_signal), // Bus [12 : 0] 
@@ -77,7 +77,7 @@ lookuptable2 bpm1_q_lut_inst (
 	.web(bpm1_q_lut_web), // Bus [0 : 0] 
 	.doutb(bpm1_q_lut_doutb)); // Bus [6 : 0]
 	
-lookuptable3 bpm2_i_lut_inst (
+lookuptable1 bpm2_i_lut_inst (
 	.clka(clk),
 	.dina(), // Bus [27 : 0] 
 	.addra(q_signal), // Bus [12 : 0] 
@@ -89,7 +89,7 @@ lookuptable3 bpm2_i_lut_inst (
 	.web(bpm2_i_lut_web), // Bus [0 : 0] 
 	.doutb(bpm2_i_lut_doutb)); // Bus [6 : 0] 
 	
-lookuptable4 bpm2_q_lut_inst (
+lookuptable1 bpm2_q_lut_inst (
 	.clka(clk),
 	.dina(), // Bus [27 : 0] 
 	.addra(q_signal), // Bus [12 : 0] 

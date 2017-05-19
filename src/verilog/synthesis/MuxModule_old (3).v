@@ -2,7 +2,7 @@
                              input clk,
                              input store_strb,
                              input [1:0] sel,
-                             input signed [12:0] ai_in,
+                             input signed[12:0] ai_in,
                              input signed [12:0] aq_in,
                              input signed [12:0] bi_in,
                              input signed [12:0] bq_in,
@@ -19,33 +19,27 @@
 									  input bpm1_q_lut_web,
 									  input bpm2_i_lut_web,
 									  input bpm2_q_lut_web,
-									  input signed [12:0] banana_corr_temp,
+									  input signed [12:0] banana_corr,
 									  input const_dac_en,
 									  input signed [12:0] const_dac,
 									  input [1:0] no_bunches_b,
 									  input [3:0] no_samples_b,
 									  input [7:0] sample_spacing_b,
-								(* IOB = "true" *) 	  output reg [12:0] fb_sgnl,
+									  output reg [12:0] fb_sgnl,
 									  output [6:0] bpm2_i_lut_doutb,
 						    		  output [6:0] bpm2_q_lut_doutb,
 									  output [6:0] bpm1_i_lut_doutb,
 									  output [6:0] bpm1_q_lut_doutb,
-								(* IOB = "true" *) 	  output dac_clk,
-									  output reg oflow
+									  output reg dac_cond
                              );
                             
-wire signed [16:0] bpm1_i_reg_int;
-wire signed [16:0] bpm1_q_reg_int;
-wire signed [16:0] bpm2_i_reg_int;
-wire signed [16:0] bpm2_q_reg_int;
-//wire dac_clk;
-reg dac_cond;
-
-(* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [1:0] no_bunches_a,no_bunches;
-(* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [3:0] no_samples_a, no_samples;
-(* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [7:0] sample_spacing_a, sample_spacing;
-(* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [7:0] b1_strobe_a, b1_strobe;
-(* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [7:0] b2_strobe_a, b2_strobe;
+wire signed [14:0] bpm1_i_reg_int, bpm1_q_reg_int,bpm2_i_reg_int,bpm2_q_reg_int;
+//reg dac_cond;
+reg [1:0] no_bunches_a,no_bunches;
+reg [3:0] no_samples_a, no_samples;
+reg [7:0] sample_spacing_a, sample_spacing;
+reg [7:0] b1_strobe_a, b1_strobe;
+reg [7:0] b2_strobe_a, b2_strobe;
 
 always @ (posedge clk) begin
 no_bunches_a<=no_bunches_b;
@@ -142,8 +136,7 @@ LUTCalc	LookUpTableModule(
 // Charge and dipole signals in
 // I/q + Q/q + I/q + Q/q out
 //wire signed [12:0] DSPout, DSPout2, DSPout3, DSPout4;
-wire signed [14:0] pout, pout2, pout3, pout4;
-reg signed [12:0] banana_corr;
+wire signed [12:0] pout, pout2, pout3, pout4;
 
 //wire signed [47:0] pout_a, pout2_a, pout3_a, pout4_a;
 DSPCalcModule DSPModule1(
@@ -153,10 +146,9 @@ DSPCalcModule DSPModule1(
 			.clk(clk),
 			.store_strb(store_strb),
 			.pout(pout),
-			.bunch_strb(bunch_strb)
-//			.banana_corr(banana_corr),
-//			.fb_cond(fb_cond),
-//			.dac_clk(dac_clk)
+			.bunch_strb(bunch_strb),
+			.banana_corr(banana_corr),
+			.fb_cond(fb_cond)
 					);
 			
 DSPCalcModule DSPModule2(
@@ -167,9 +159,7 @@ DSPCalcModule DSPModule2(
 			.store_strb(store_strb),
 			.pout(pout2),
 			.bunch_strb(bunch_strb),
-			.fb_cond(fb_cond),
-			.dac_clk(dac_clk)
-//			.banana_corr(banana_corr)
+			.banana_corr(banana_corr)
 			);
 			
 DSPCalcModule DSPModule3(
@@ -179,10 +169,8 @@ DSPCalcModule DSPModule3(
 			.clk(clk),
 			.store_strb(store_strb),
 			.pout(pout3),
-			.bunch_strb(bunch_strb)
-//			.fb_cond(fb_cond),
-//			.dac_clk(dac_clk)
-//			.banana_corr(banana_corr)
+			.bunch_strb(bunch_strb),
+			.banana_corr(banana_corr)
 			);
 			
 DSPCalcModule DSPModule4(
@@ -192,44 +180,26 @@ DSPCalcModule DSPModule4(
 			.clk(clk),
 			.store_strb(store_strb),
 			.pout(pout4),
-			.bunch_strb(bunch_strb)
-//			.fb_cond(fb_cond),
-//			.dac_clk(dac_clk)
-//			.banana_corr(banana_corr)
+			.bunch_strb(bunch_strb),
+			.banana_corr(banana_corr)
 			);
 
 // ***** Clock DAC/Assign fb_sgnl *****
 
-reg signed [14:0] sum1, sum2;
+reg signed [12:0] sum1, sum2;
 reg output_cond1, output_cond2;
-//reg oflowsum1,oflowsum2;
-//reg oflowadd=0;
-reg signed [14:0] fb_sgnl_full=0;
-//reg dac_clk;
 
 
 always @ (posedge clk)begin
-banana_corr<=banana_corr_temp;
 dac_cond<=fb_cond; 
-//dac_clk<=dac_cond; 
 sum1<=pout+pout2;
-sum2<=pout3+pout4+banana_corr;
+sum2<=pout3+pout4;
 output_cond1<=dac_cond & !const_dac_en;
 output_cond2<=dac_cond & const_dac_en;
-////oflow2<=((&sum1[15:12]==0)&(&!sum1[15:12]==0))|((&sum2[15:12]==0)&(&!sum2[15:12]==0));
-//oflowsum1<=(~&sum1[14:12] && ~&(~sum1[14:12]));
-//oflowsum2<=(~&sum2[14:12] && ~&(~sum2[14:12]));
-oflow<=(~&fb_sgnl_full[14:12] && ~&(~fb_sgnl_full[14:12]));
-if (~store_strb) fb_sgnl<=0;
-else begin
-if (output_cond1) begin
-fb_sgnl<=sum1+sum2; // If reference not delayed by two samples then increase j accordingly
-fb_sgnl_full<=sum1+sum2; // If reference not delayed by two samples then increase j accordingly
-//oflowadd<=((sum1[12]&sum2[12]) & ~fb_sgnl[12])|((~sum1[12]&~sum2[12]) & fb_sgnl[12]);
-end
+if (output_cond1) fb_sgnl<=sum1+sum2; // If reference not delayed by two samples then increase j accordingly
 else if (output_cond2) fb_sgnl<=const_dac;
-//else fb_sgnl<=0;
-end
+//else if (output_cond2) fb_sgnl<=const_dac;
+else fb_sgnl<=0;
 end
 
 

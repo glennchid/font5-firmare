@@ -19,12 +19,11 @@
 
   <version xmlns="http://www.xilinx.com/XMLSchema">11.1</version>
 
-  <sourceproject xmlns="http://www.xilinx.com/XMLSchema" xil_pn:fileType="FILE_XISE" xil_pn:name="DAQ_MEM.xise"/>
+  <sourceproject xmlns="http://www.xilinx.com/XMLSchema" xil_pn:fileType="FILE_XISE" xil_pn:name="lookuptable1.xise"/>
 
   <files xmlns="http://www.xilinx.com/XMLSchema">
-    <file xil_pn:fileType="FILE_ASY" xil_pn:name="DAQ_MEM.asy" xil_pn:origination="imported"/>
-    <file xil_pn:fileType="FILE_SYMBOL" xil_pn:name="DAQ_MEM.sym" xil_pn:origination="imported"/>
-    <file xil_pn:fileType="FILE_VEO" xil_pn:name="DAQ_MEM.veo" xil_pn:origination="imported"/>
+    <file xil_pn:fileType="FILE_ASY" xil_pn:name="lookuptable1.asy" xil_pn:origination="imported"/>
+    <file xil_pn:fileType="FILE_VEO" xil_pn:name="lookuptable1.veo" xil_pn:origination="imported"/>
   </files>
 
   <transforms xmlns="http://www.xilinx.com/XMLSchema">
@@ -32,19 +31,19 @@
       <status xil_pn:value="SuccessfullyRun"/>
       <status xil_pn:value="ReadyToRun"/>
     </transform>
-    <transform xil_pn:end_ts="1495188373" xil_pn:name="TRAN_schematicsToHdl" xil_pn:prop_ck="-5842364284022654535" xil_pn:start_ts="1495188373">
+    <transform xil_pn:end_ts="1494928111" xil_pn:name="TRAN_schematicsToHdl" xil_pn:prop_ck="-4478115457550910920" xil_pn:start_ts="1494928111">
       <status xil_pn:value="SuccessfullyRun"/>
       <status xil_pn:value="ReadyToRun"/>
     </transform>
-    <transform xil_pn:end_ts="1495188373" xil_pn:name="TRAN_regenerateCores" xil_pn:prop_ck="-4886394891324157995" xil_pn:start_ts="1495188373">
+    <transform xil_pn:end_ts="1494928111" xil_pn:name="TRAN_regenerateCores" xil_pn:prop_ck="7519978984469340820" xil_pn:start_ts="1494928111">
       <status xil_pn:value="SuccessfullyRun"/>
       <status xil_pn:value="ReadyToRun"/>
     </transform>
-    <transform xil_pn:end_ts="1495188373" xil_pn:name="TRAN_SubProjectAbstractToPreProxy" xil_pn:start_ts="1495188373">
+    <transform xil_pn:end_ts="1494928111" xil_pn:name="TRAN_SubProjectAbstractToPreProxy" xil_pn:start_ts="1494928111">
       <status xil_pn:value="SuccessfullyRun"/>
       <status xil_pn:value="ReadyToRun"/>
     </transform>
-    <transform xil_pn:end_ts="1495188373" xil_pn:name="TRAN_xawsTohdl" xil_pn:prop_ck="2756340700594662603" xil_pn:start_ts="1495188373">
+    <transform xil_pn:end_ts="1494928111" xil_pn:name="TRAN_xawsTohdl" xil_pn:prop_ck="-1361036164369635190" xil_pn:start_ts="1494928111">
       <status xil_pn:value="SuccessfullyRun"/>
       <status xil_pn:value="ReadyToRun"/>
     </transform>
