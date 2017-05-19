@@ -35,11 +35,13 @@
                             
 wire signed [14:0] bpm1_i_reg_int, bpm1_q_reg_int,bpm2_i_reg_int,bpm2_q_reg_int;
 //reg dac_cond;
-reg [1:0] no_bunches_a,no_bunches;
-reg [3:0] no_samples_a, no_samples;
-reg [7:0] sample_spacing_a, sample_spacing;
-reg [7:0] b1_strobe_a, b1_strobe;
-reg [7:0] b2_strobe_a, b2_strobe;
+(* async_reg = "TRUE" *) reg [1:0] no_bunches_a,no_bunches;
+(* async_reg = "TRUE" *) reg [3:0] no_samples_a, no_samples;
+(* async_reg = "TRUE" *) reg [7:0] sample_spacing_a, sample_spacing;
+(* async_reg = "TRUE" *) reg [7:0] b1_strobe_a, b1_strobe;
+(* async_reg = "TRUE" *) reg [7:0] b2_strobe_a, b2_strobe;
+
+(* keep = "yes" *) reg signed [12:0] ai, aq, bi, bq, ci, cq, chrg;
 
 always @ (posedge clk) begin
 no_bunches_a<=no_bunches_b;
@@ -52,6 +54,13 @@ b1_strobe_a<=b1_strobe_b;
 b1_strobe<=b1_strobe_a;
 b2_strobe_a<=b2_strobe_b;
 b2_strobe<=b2_strobe_a;
+ai <= ai_in;
+aq <= aq_in;
+bi <= bi_in;
+bq <= bq_in;
+ci <= ci_in;
+cq <= cq_in;
+chrg <= q_signal;
 end 
 
 
@@ -76,16 +85,16 @@ Timing  TimingStrobes(
 MuxModule Multiplexers(
 	.bunch_strb(bunch_strb),
 	.sel(sel),
-   .ai_in(ai_in),
-   .aq_in(aq_in),
-   .bi_in(bi_in),
-   .bq_in(bq_in),
-   .ci_in(ci_in),
-   .cq_in(cq_in),
-	.bpm1_q_reg_int_a(bpm1_q_reg_int), 
-	.bpm1_i_reg_int_a(bpm1_i_reg_int), 
-	.bpm2_q_reg_int_a(bpm2_q_reg_int), 
-	.bpm2_i_reg_int_a(bpm2_i_reg_int),
+   .ai_in(ai),
+   .aq_in(aq),
+   .bi_in(bi),
+   .bq_in(bq),
+   .ci_in(ci),
+   .cq_in(cq),
+	.bpm1_q_reg_int(bpm1_q_reg_int), 
+	.bpm1_i_reg_int(bpm1_i_reg_int), 
+	.bpm2_q_reg_int(bpm2_q_reg_int), 
+	.bpm2_i_reg_int(bpm2_i_reg_int),
 	.clk(clk),  // static offset to be applied to I or Q
 	.dac_cond(dac_cond)
 );
@@ -120,7 +129,7 @@ LUTCalc	LookUpTableModule(
 									  .bpm2_q_lut_addrb(bpm_lut_addrb),
 									  .bpm2_q_lut_web(bpm2_q_lut_web),
 									  .bpm2_q_lut_doutb(bpm2_q_lut_doutb),
-									  .q_signal(q_signal),
+									  .q_signal(chrg),
 									  .bpm1_i_lut_out(g1_inv_q),
 									  .bpm1_q_lut_out(g2_inv_q),
 									  .bpm2_i_lut_out(g3_inv_q),

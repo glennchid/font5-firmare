@@ -27,10 +27,10 @@ module MuxModule(
    input signed [12:0] bq_in,
    input signed [12:0] ci_in,
    input signed [12:0] cq_in,
-	output reg signed [14:0] bpm1_q_reg_int_a, 
-	output reg signed [14:0] bpm1_i_reg_int_a, 
-	output reg signed [14:0] bpm2_q_reg_int_a, 
-	output reg signed [14:0] bpm2_i_reg_int_a,
+	output reg signed [14:0] bpm1_q_reg_int, 
+	output reg signed [14:0] bpm1_i_reg_int, 
+	output reg signed [14:0] bpm2_q_reg_int, 
+	output reg signed [14:0] bpm2_i_reg_int,
 	input clk,
 	input dac_cond
   
@@ -38,7 +38,7 @@ module MuxModule(
 
 //(* equivalent_register_removal = "no"*) reg [6:0] j;
 wire signed [12:0] bpm1_i, bpm1_q, bpm2_i, bpm2_q; 
-(* equivalent_register_removal = "no"*)reg signed [14:0] bpm1_i_reg_int,bpm1_q_reg_int,bpm2_i_reg_int,bpm2_q_reg_int;
+//(* equivalent_register_removal = "no"*)reg signed [14:0] bpm1_i_reg_int,bpm1_q_reg_int,bpm2_i_reg_int,bpm2_q_reg_int;
 initial begin 
 bpm1_i_reg_int=0;
 bpm1_q_reg_int=0;
@@ -57,10 +57,10 @@ assign bpm1_i = (sel[0])? bi_in: ai_in;
 
 
 always@(posedge clk) begin
-bpm1_i_reg_int_a<=bpm1_i_reg_int;
-bpm1_q_reg_int_a<=bpm1_q_reg_int;
-bpm2_i_reg_int_a<=bpm2_i_reg_int;
-bpm2_q_reg_int_a<=bpm2_q_reg_int;
+//bpm1_i_reg_int_a<=bpm1_i_reg_int;
+//bpm1_q_reg_int_a<=bpm1_q_reg_int;
+//bpm2_i_reg_int_a<=bpm2_i_reg_int;
+//bpm2_q_reg_int_a<=bpm2_q_reg_int;
 if (bunch_strb) begin
 bpm1_i_reg_int<=bpm1_i+bpm1_i_reg_int;
 bpm1_q_reg_int<=bpm1_q+bpm1_q_reg_int;
