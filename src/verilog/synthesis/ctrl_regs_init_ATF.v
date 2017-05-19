@@ -24,9 +24,9 @@ initial begin
 		ctrl_regs[68] = 7'b0011001; //b1_strobe dipole samples
 		ctrl_regs[69] = 7'b0010100; // b2_strobe reference sample
 		ctrl_regs[70]= 7'b0001010; // bpm_sel, no_bunches
-		ctrl_regs[71] = 7'b0000001; // Number of samples to integrate
+		ctrl_regs[71] = 7'b0000100; // Number of samples to integrate
 		
-		ctrl_regs[85]=7'b00000000; // Bit [2] is delay enable
+		ctrl_regs[85]=7'b00000100; // Bit [2] is delay enable, bit [4] is const dac en
 
 		ctrl_regs[111]=3'd7;				// Trigger threshold code
 		ctrl_regs[119] = 7'b0010100; // top seven bits of ten-bit decimal "164" - # samples
@@ -44,7 +44,7 @@ initial begin
 		ctrl_regs_mem[49] = 7'd32;			// K1 gain
 		ctrl_regs_mem[50] = 7'd32;			// K2 gain
 		//ctrl_regs_mem[51] = 7'd2;
-		ctrl_regs[106]=7'b0000000; // banana correction
+		ctrl_regs[106]=7'b0010000; // banana correction
 		ctrl_regs[107]=7'b0000000;
 		ctrl_regs_mem[111]=3'd7;
 		ctrl_regs_mem[119] = 7'b0010100; // top seven bits of ten-bit decimal "164"

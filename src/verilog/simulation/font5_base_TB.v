@@ -173,7 +173,9 @@ parameter CH5_BITFLIP = (13'b0100110011010 ^ -13'sd4096);
 		.IDDR2_Q1(IDDR2_Q1), 
 		.IDDR2_Q2(IDDR2_Q2), 
 		.IDDR3_Q1(IDDR3_Q1), 
-		.IDDR3_Q2(IDDR3_Q2)
+		.IDDR3_Q2(IDDR3_Q2),
+		.DirIOB(DirIOB),
+		.store_strb(store_strb)
 	);
 
 	/*integer fid;

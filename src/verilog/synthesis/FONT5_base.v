@@ -17,6 +17,9 @@
 //
 //////////////////////////////////////////////////////////////////////////////////
 module FONT5_base(
+`ifdef	XILINX_ISIM	
+		output store_strb,
+`endif
 		//Inputs from top level wrapper
 		input clk357, 
 		input clk40,
@@ -113,8 +116,7 @@ module FONT5_base(
 		//inout DirectIO1 //Bi-directional I/O port for synchronisation
 		output DirIOB,
 		input auxInA,
-		output auxOutC,
-		output store_strb
+		output auxOutC
     );
 
 //parameters and defintions
@@ -327,7 +329,7 @@ trigger_divider trig_div (
 // strobes and triggers for ADCs, DAQ and amplifier.
 // All control signals from 357MHz control registers
 
-//wire store_strb;
+wire store_strb;
 wire adc_align_en;
 // Control register wires
 //wire 			cr_clk2_16_edge_sel;
@@ -1466,10 +1468,11 @@ FBModule my_FBmod(
 		.banana_corr_temp(k1_b2_offset),
 		.const_dac(k1constDAC),
 		.const_dac_en(k1_const_dac_en),
-		.dac_cond(dac1_clk),
+		.dac_clk(dac1_clk),
 		.no_bunches_b(no_bunches),
 		.no_samples_b(no_samples),
-		.sample_spacing_b(sample_spacing)
+		.sample_spacing_b(sample_spacing),
+		.oflow(oflow)
 		);
 `endif
 
