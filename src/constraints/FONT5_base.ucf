@@ -464,5 +464,5 @@ NET "diginput2"  LOC = "AG5";
 
 ## ADVANCED TIMING CONSTRIANTS ##
 #NET "FONT5_base_top/loop/opMode*" TIG; # Slow MUX_SEL control signal?
-NET "FONT5_base_top/chan*_offset*" TIG;
+#NET "FONT5_base_top/chan*_offset*" TIG;
 #NET "iddr*_ce*" TIG;

@@ -638,12 +638,12 @@
     <!-- include files.                                                       -->
     <file xil_pn:name="src/verilog/synthesis/bits_to_fit.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="src/verilog/synthesis/definitions.vh" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="src/verilog/synthesis/ctrl_regs_ATF.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="src/verilog/synthesis/ctrl_regs_init_CTF.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="src/verilog/synthesis/DRDY_IBUFDS_inst.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="src/verilog/synthesis/DRDY_IDELAY_inst.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="src/verilog/synthesis/DATA_IBUFDS_inst.v" xil_pn:type="FILE_VERILOG"/>
     <file xil_pn:name="src/verilog/synthesis/DATA_IODELAY_inst.v" xil_pn:type="FILE_VERILOG"/>
-    <file xil_pn:name="src/verilog/synthesis/ctrl_regs_ATF.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>
