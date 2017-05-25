@@ -212,7 +212,9 @@ assign run = ctrl_regs[ADDROFF+59][0];
 `endif
 assign trig_int_en = ctrl_regs[51][1];
 assign IIRbypass = {ctrl_regs[52][5:0], ctrl_regs[51][6:2]};
-
+`ifdef LUTRAMreadout
+	wire LUTRAMreadout = ctrl_regs[52][6];
+`endif
 
 assign ch1_IIRtapWeight = ctrl_regs[53];
 assign ch2_IIRtapWeight = ctrl_regs[54];

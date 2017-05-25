@@ -122,7 +122,14 @@ module FONT5_base(
 //parameters and defintions
 parameter DSP_WIDTH = 16;
 //`include "font5_base_top.vh"
-`include "definitions.vh"
+//`include "definitions.vh"   // NO NEED TO INCLUDE ANYMORE AS IT IS DEFINED AS GLOBAL
+
+`ifdef FASTCLK_192MHZ
+	parameter FASTCLK_PERIOD = 5.208; 
+`else
+	parameter FASTCLK_PERIOD = 2.800;
+`endif
+
 //`define INCLUDE_TESTBENCH
 
 //`define DOUBLE_CONTROL_REGS
@@ -1439,6 +1446,20 @@ PFF_DSP_16 loop (
 `endif	
 
 `ifdef BUILD_ATF
+wire k1_p2_lut_wr_en;
+wire k1_p3_lut_wr_en;
+wire k2_p2_lut_wr_en;
+wire k2_p3_lut_wr_en;
+`ifdef LUTRAMreadout
+	wire [14:0] daq_lutram_addr;
+	reg [14:0] bpm_lut_addrb;
+	always @(posedge clk40) bpm_lut_addrb <= (LUTRAMreadout) ?  daq_lutram_addr : gainlut_ld_addr;
+	wire [6:0] bpm1_i_lut_doutb;
+	wire [6:0] bpm1_q_lut_doutb;
+	wire [6:0] bpm2_i_lut_doutb;
+	wire [6:0] bpm2_q_lut_doutb;
+`endif
+
 FBModule my_FBmod(
 		.clk(clk357),
 		.sel(bpm_sel),
@@ -1450,15 +1471,23 @@ FBModule my_FBmod(
 		.cq_in(chan8_RAM_data[15:3]),
 		.q_signal(chan9_RAM_data[15:3]),
 		.bpm_lut_dinb(gainlut_ld_data),
-		.bpm_lut_addrb(gainlut_ld_addr),
 		.bpm1_i_lut_web(k1_p2_lut_wr_en),
-		.bpm1_i_lut_doutb(bpm1_i_lut_doutb),
 		.bpm1_q_lut_web(k1_p3_lut_wr_en),
-		.bpm1_q_lut_doutb(bpm1_q_lut_doutb),
 		.bpm2_i_lut_web(k2_p2_lut_wr_en),
-		.bpm2_i_lut_doutb(bpm2_i_lut_doutb),
 		.bpm2_q_lut_web(k2_p3_lut_wr_en),
-		.bpm2_q_lut_doutb(bpm2_q_lut_doutb),
+		`ifdef LUTRAMreadout
+			.bpm_lut_addrb(bpm_lut_addrb),
+			.bpm1_i_lut_doutb(bpm1_i_lut_doutb),
+			.bpm1_q_lut_doutb(bpm1_q_lut_doutb),
+			.bpm2_i_lut_doutb(bpm2_i_lut_doutb),
+			.bpm2_q_lut_doutb(bpm2_q_lut_doutb),
+		`else
+			.bpm_lut_addrb(gainlut_ld_addr),
+			.bpm1_i_lut_doutb(),
+			.bpm1_q_lut_doutb(),
+			.bpm2_i_lut_doutb(),
+			.bpm2_q_lut_doutb(),
+		`endif
 		.fb_sgnl(dac1_out),
 		.b1_strobe_b(b1_strobe),
 		.b2_strobe_b(b2_strobe),
@@ -1672,24 +1701,38 @@ assign dac2_clk = k2_dac_en;
 // timestamp and framing bytes, and enables DAQ_RAM transmission as appropriate
 // The sequence begins on the falling edge of store strobe
 
-// Sequence state parametrisation
-//parameter TRANS_WAIT = 				5'd0;
-parameter TRANS_STAMP =				5'd2;
-parameter TRANS_CHAN1 = 			5'd4;
-parameter TRANS_CHAN2 = 			5'd6;
-parameter TRANS_CHAN3 = 			5'd8;
-parameter TRANS_CHAN4 = 			5'd10;
-parameter TRANS_CHAN5 = 			5'd12;
-parameter TRANS_CHAN6 = 			5'd14;
-parameter TRANS_CHAN7 = 			5'd16;
-parameter TRANS_CHAN8 = 			5'd18;
-parameter TRANS_CHAN9 = 			5'd20;
-parameter TRANS_DAC_K1 = 			5'd22;
-parameter TRANS_DAC_K2 = 			5'd24;
-//parameter TRANS_357_RB =			5'd26;
-parameter TRANS_40_RB =				5'd28;
-parameter TRANS_MON_RB = 			5'd30;
+`ifdef LUTRAMreadout
+	localparam TRANS_STATE_WIDTH = 6;
+`else
+	localparam TRANS_STATE_WIDTH = 5;
+`endif
 
+// Sequence state parametrisation
+//parameter [TRANS_STATE_WIDTH-1:0] TRANS_WAIT = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd0};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_STAMP = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd2};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN1 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd4};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN2 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd6};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN3 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd8};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN4 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd10};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN5 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd12};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN6 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd14};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN7 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd16};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN8 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd18};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN9 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd20};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_DAC_K1 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd22};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_DAC_K2 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd24};
+//parameter [TRANS_STATE_WIDTH-1:0] TRANS_357_RB =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd26};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_40_RB =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd28};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_MON_RB = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd30};
+`ifdef LUTRAMreadout
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K1P2 = {{(TRANS_STATE_WIDTH-6){1'b0}}, 6'd32};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K1P3 = {{(TRANS_STATE_WIDTH-6){1'b0}},6'd34};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K2P2 = {{(TRANS_STATE_WIDTH-6){1'b0}},6'd36};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K2P3 = {{(TRANS_STATE_WIDTH-6){1'b0}},6'd38};
+	wire			daq_lutram_tx_done;
+	wire			daq_lutram_tx_load;
+	reg			daq_lutram_tx_en = 1'b0;
+`endif
 // Control register readback control wires
 wire			daq_readback_tx_done;
 wire			daq_readback_tx_load;
@@ -1709,7 +1752,7 @@ wire [6:0]	daq_readback_mon_tx_data;
 
 reg			daq_readback_mon_tx_en = 1'b0;
 
-wire [4:0]  daq_trans_state;
+wire [TRANS_STATE_WIDTH-1:0]  daq_trans_state;
 wire 			daq_ram_tx_en;
 reg 			current_daq_ram_tx_done = 1'b0;
 //wire [7:0] 	daq_seq_tx_data;
@@ -1722,6 +1765,9 @@ DAQ_sequencer2 DAQ_sequencer(
 	.rst(dcm200_rst),
 	.strobe(p1_store_strb),
 	.poll_uart(poll_uart && ~run),
+	`ifdef LUTRAMreadout
+		.LUTRAMreadout(LUTRAMreadout),
+	`endif
 	.trans_done(current_daq_ram_tx_done),
 	.num_chans(num_chans),
 	.trans_state(daq_trans_state),
@@ -1750,6 +1796,9 @@ always @(posedge clk40) begin
 	//daq_readback357_tx_en 	<= 0;
 	daq_readback_tx_en		<= 0;
 	daq_readback_mon_tx_en 	<= 0;
+	`ifdef LUTRAMreadout
+		daq_lutram_tx_en <= 0;
+	`endif
 	case(daq_trans_state)
 		TRANS_CHAN1 : daq_chan1_tx_en <= daq_ram_tx_en;
 		TRANS_CHAN2 : daq_chan2_tx_en <= daq_ram_tx_en;
@@ -1765,6 +1814,12 @@ always @(posedge clk40) begin
 		//TRANS_357_RB  : daq_readback357_tx_en 		<= daq_ram_tx_en;
 		TRANS_40_RB   : daq_readback_tx_en  		<= daq_ram_tx_en;
 		TRANS_MON_RB  : daq_readback_mon_tx_en  	<= daq_ram_tx_en;
+		`ifdef LUTRAMreadout
+			TRANS_K1P2 : daq_lutram_tx_en  	<= daq_ram_tx_en;
+			TRANS_K1P3 : daq_lutram_tx_en  	<= daq_ram_tx_en;
+			TRANS_K2P2 : daq_lutram_tx_en  	<= daq_ram_tx_en;
+			TRANS_K2P3 : daq_lutram_tx_en  	<= daq_ram_tx_en;
+		`endif
 	endcase
 end
 	
@@ -1784,6 +1839,12 @@ always @(posedge clk40) begin
 		//TRANS_357_RB  : current_daq_ram_tx_done <= daq_readback357_tx_done;
 		TRANS_40_RB   : current_daq_ram_tx_done <= daq_readback_tx_done;
 		TRANS_MON_RB  : current_daq_ram_tx_done <= daq_readback_mon_tx_done;
+		`ifdef LUTRAMreadout
+			TRANS_K1P2 : current_daq_ram_tx_done  	<= daq_lutram_tx_done;
+			TRANS_K1P3 : current_daq_ram_tx_done  	<= daq_lutram_tx_done;
+			TRANS_K2P2 : current_daq_ram_tx_done  	<= daq_lutram_tx_done;
+			TRANS_K2P3 : current_daq_ram_tx_done  	<= daq_lutram_tx_done;
+		`endif
 		default		  : current_daq_ram_tx_done <= 0;
 	endcase
 end
@@ -1809,6 +1870,12 @@ always @(posedge clk40) begin
 		//TRANS_357_RB  : uart_tx_load <= daq_readback357_tx_load;
 		TRANS_40_RB   : uart_tx_load <= daq_readback_tx_load;
 		TRANS_MON_RB  : uart_tx_load <= daq_readback_mon_tx_load;
+		`ifdef LUTRAMreadout
+			TRANS_K1P2    : uart_tx_load <= daq_lutram_tx_load;
+			TRANS_K1P3    : uart_tx_load <= daq_lutram_tx_load;
+			TRANS_K2P2    : uart_tx_load <= daq_lutram_tx_load;
+			TRANS_K2P3    : uart_tx_load <= daq_lutram_tx_load;
+		`endif
 		//By default pass the sequencer's load signal
 		default		  : uart_tx_load <= daq_seq_tx_ld;
 	endcase
@@ -1831,6 +1898,12 @@ always @(posedge clk40) begin
 		//TRANS_357_RB  : uart_tx_data <= daq_readback357_tx_data;
 		TRANS_40_RB   : uart_tx_data <= {1'b1, daq_readback_tx_data};
 		TRANS_MON_RB  : uart_tx_data <= {1'b1, daq_readback_mon_tx_data};
+		`ifdef LUTRAMreadout
+			TRANS_K1P2	  : uart_tx_data <= {1'b1, bpm1_i_lut_doutb};
+			TRANS_K1P3	  : uart_tx_data <= {1'b1, bpm1_q_lut_doutb};
+			TRANS_K2P2	  : uart_tx_data <= {1'b1, bpm2_i_lut_doutb};
+			TRANS_K2P3	  : uart_tx_data <= {1'b1, bpm2_q_lut_doutb};
+		`endif
 		//By default pass the sequencer's data signal
 		default		  : uart_tx_data <= {1'b0, daq_seq_tx_data};
 	endcase
@@ -1972,11 +2045,25 @@ uart_decoder3 uart_decoder (
 );	 
 
 // **** Multiplex the gain lut load strobe ****
-assign k1_p2_lut_wr_en = (gainlut_ld_select == 5'd0) ? gainlut_ld_en : 1'b0;
-assign k1_p3_lut_wr_en = (gainlut_ld_select == 5'd1) ? gainlut_ld_en : 1'b0;
 assign trim_lut_wr_en = (gainlut_ld_select == 5'd2) ? gainlut_ld_en : 1'b0;
-assign k2_p2_lut_wr_en = (gainlut_ld_select == 5'd3) ? gainlut_ld_en : 1'b0;
-assign k2_p3_lut_wr_en = (gainlut_ld_select == 5'd4) ? gainlut_ld_en : 1'b0;
+`ifdef BUILD_ATF
+	assign k1_p2_lut_wr_en = (gainlut_ld_select == 5'd0) ? gainlut_ld_en : 1'b0;
+	assign k1_p3_lut_wr_en = (gainlut_ld_select == 5'd1) ? gainlut_ld_en : 1'b0;
+	assign k2_p2_lut_wr_en = (gainlut_ld_select == 5'd3) ? gainlut_ld_en : 1'b0;
+	assign k2_p3_lut_wr_en = (gainlut_ld_select == 5'd4) ? gainlut_ld_en : 1'b0;
+`endif
+
+`ifdef LUTRAMreadout
+	ctrl_reg_readback #(15,32768) lutram_readback (
+		.clk(clk40),
+		.rst(dcm200_rst),
+		.tx_en(daq_lutram_tx_en),
+		.tx_data_loaded(~uart_tx_empty),
+		.tx_data_ready(daq_lutram_tx_load),
+		.tx_complete(daq_lutram_tx_done),
+		.tx_cnt(daq_lutram_addr)
+	);
+`endif
 
 // ******* Control Registers *******************
 

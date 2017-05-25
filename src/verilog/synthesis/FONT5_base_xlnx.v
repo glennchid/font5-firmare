@@ -160,13 +160,20 @@ wire IDDR1_Q1, IDDR1_Q2, IDDR2_Q1, IDDR2_Q2, IDDR3_Q1, IDDR3_Q2;
 wire config_rst;
 DCM_config_rst ConfigRst1(clk40_ibufg, config_rst);
 
+IBUFG #(
+	.IOSTANDARD("DEFAULT")
+) IBUFG_clk40 (
+	.O(clk40_ibufg), // Clock buffer output
+	.I(clk40_s)  // Clock buffer input (connect directly to top-level port)
+);
+
 //DCM for 200 MHz
 DCM1 DCM200 (
-    .CLKIN_IN(clk40_s), 
+    .CLKIN_IN(clk40_ibufg), 
     //.RST_IN(dcm200_rst), 
 	 .RST_IN(config_rst),
     .CLKFX_OUT(clk200), 
-    .CLKIN_IBUFG_OUT(clk40_ibufg), 
+    //.CLKIN_IBUFG_OUT(clk40_ibufg), 
     .CLK0_OUT(clk40_dcm), 
     .LOCKED_OUT(dcm200_locked)
     );
