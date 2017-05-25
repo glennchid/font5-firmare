@@ -3,7 +3,9 @@
 `define BUILD_ATF
 //`define BUILD_CTF
 
-`define LUTRAMreadout
+`ifdef BUILD_ATF
+	`define LUTRAMreadout
+`endif
 
 `define DOUBLE_CONTROL_REGS
 

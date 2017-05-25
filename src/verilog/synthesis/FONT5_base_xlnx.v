@@ -160,6 +160,8 @@ wire IDDR1_Q1, IDDR1_Q2, IDDR2_Q1, IDDR2_Q2, IDDR3_Q1, IDDR3_Q2;
 wire config_rst;
 DCM_config_rst ConfigRst1(clk40_ibufg, config_rst);
 
+//wire clk40_bufg;
+
 IBUFG #(
 	.IOSTANDARD("DEFAULT")
 ) IBUFG_clk40 (
@@ -177,6 +179,8 @@ DCM1 DCM200 (
     .CLK0_OUT(clk40_dcm), 
     .LOCKED_OUT(dcm200_locked)
     );
+	 
+//assign clk40_ibufg = clk40_bufg;
 
 // %%%%%%%%%%%%%%%   40MHz INPUT - 200MHz gen - IDELAYCTRL  %%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

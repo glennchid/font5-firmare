@@ -155,8 +155,13 @@ reg [CR_WIDTH-1:0] ctrl_regs [0:N_CTRL_REGS-1];
 reg [CR_WIDTH-1:0] ctrl_regs_mem [0:N_CTRL_REGS-1];
 
 //`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs.v"
-`include "ctrl_regs.v"
-//`ifdef XILINX_ISIM 
+`ifdef BUILD_ATF //temporary solution until ctrl_regs module is tidied up
+	`include "ctrl_regs.v"
+`else 
+	`include "ctrl_regs_CTF.v"
+`endif 
+
+//`ifdef XILINX_ISIM
 //	`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs_init_sim.v"
 //`else 
 //	`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs_init.v"
