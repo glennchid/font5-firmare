@@ -19,12 +19,13 @@
 									  input bpm1_q_lut_web,
 									  input bpm2_i_lut_web,
 									  input bpm2_q_lut_web,
-									  input signed [12:0] banana_corr_temp,
-									  input const_dac_en,
-									  input signed [12:0] const_dac,
+									  input signed [12:0] banana_corr_temp_b,
+									  input const_dac_en_b,
+									  input signed [12:0] const_dac_b,
 									  input [1:0] no_bunches_b,
 									  input [3:0] no_samples_b,
 									  input [7:0] sample_spacing_b,
+									  input fb_en_b,
 		(* IOB = "true" *) 	  output reg [12:0] fb_sgnl,
 									  output [6:0] bpm2_i_lut_doutb,
 						    		  output [6:0] bpm2_q_lut_doutb,
@@ -47,7 +48,13 @@ reg signed [12:0] charge;
 (* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [7:0] sample_spacing_a, sample_spacing;
 (* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [7:0] b1_strobe_a, b1_strobe;
 (* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [7:0] b2_strobe_a, b2_strobe;
+(* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg fb_en_a, fb_en;
+(* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [12:0] banana_corr_temp_a, banana_corr_temp;
+(* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [12:0] const_dac_a, const_dac;
+(* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg const_dac_en_a, const_dac_en;
 
+
+// Banana correction and const dac
 always @ (posedge clk) begin
 no_bunches_a<=no_bunches_b;
 no_bunches<=no_bunches_a;
@@ -60,6 +67,14 @@ b1_strobe<=b1_strobe_a;
 b2_strobe_a<=b2_strobe_b;
 b2_strobe<=b2_strobe_a;
 charge<=q_signal;
+fb_en_a<=fb_en_b;
+fb_en<=fb_en_a;
+banana_corr_temp_a<=banana_corr_temp_b;
+banana_corr_temp<=banana_corr_temp_a;
+const_dac_a<=const_dac_b;
+const_dac<=const_dac_a;
+const_dac_en_a<=const_dac_en_b;
+const_dac_en<=const_dac_en_a;
 end 
 
 
@@ -155,7 +170,8 @@ DSPCalcModule DSPModule1(
 			.store_strb(store_strb),
 			.pout(pout),
 			.bunch_strb(bunch_strb),
-			.DSPoflow(DSPoflow1)
+			.DSPoflow(DSPoflow1),
+			.fb_en(fb_en)
 //			.banana_corr(banana_corr),
 //			.fb_cond(fb_cond),
 //			.dac_clk(dac_clk)
@@ -171,7 +187,8 @@ DSPCalcModule DSPModule2(
 			.bunch_strb(bunch_strb),
 			.fb_cond(fb_cond),
 			.dac_clk(dac_clk),
-			.DSPoflow(DSPoflow2)
+			.DSPoflow(DSPoflow2),
+			.fb_en(fb_en)
 //			.banana_corr(banana_corr)
 			);
 			
@@ -183,7 +200,8 @@ DSPCalcModule DSPModule3(
 			.store_strb(store_strb),
 			.pout(pout3),
 			.bunch_strb(bunch_strb),
-			.DSPoflow(DSPoflow3)
+			.DSPoflow(DSPoflow3),
+			.fb_en(fb_en)
 //			.fb_cond(fb_cond),
 //			.dac_clk(dac_clk)
 //			.banana_corr(banana_corr)
@@ -197,7 +215,8 @@ DSPCalcModule DSPModule4(
 			.store_strb(store_strb),
 			.pout(pout4),
 			.bunch_strb(bunch_strb),
-			.DSPoflow(DSPoflow4)
+			.DSPoflow(DSPoflow4),
+			.fb_en(fb_en)
 //			.fb_cond(fb_cond),
 //			.dac_clk(dac_clk)
 //			.banana_corr(banana_corr)

@@ -24,6 +24,7 @@ module DSPCalcModule(
 			input delay_en,
 			input clk,
 			input store_strb,
+			input fb_en,
 			output reg signed [14:0] pout,
 			input bunch_strb,
 			output reg DSPoflow,
@@ -88,13 +89,21 @@ end
 
 //reg fb_cond2;
 
+
 always @ (posedge clk) begin
+if (fb_en) begin
 if (j==2||j==3) fb_cond<=1;
 else fb_cond<=0;
 end
+else fb_cond<=0;
+end
+
 
 always @ (posedge clk) begin
+if (fb_en) begin
 if (j==6||j==7) dac_clk<=1;
+else dac_clk<=0;
+end
 else dac_clk<=0;
 end
 

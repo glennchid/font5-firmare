@@ -1494,19 +1494,21 @@ FBModule my_FBmod(
 			.bpm2_q_lut_doutb(),
 		`endif
 		.fb_sgnl(dac1_out),
+		.fb_en_b(output_en),
 		.b1_strobe_b(b1_strobe),
 		.b2_strobe_b(b2_strobe),
 		.delay_en(k1_delayloop_on),
 		.store_strb(store_strb),
 	   .slow_clk(clk40),
-		.banana_corr_temp(k1_b2_offset),
-		.const_dac(k1constDAC),
-		.const_dac_en(k1_const_dac_en),
+		.banana_corr_temp_b(k1_b2_offset),
+		.const_dac_b(k1constDAC),
+		.const_dac_en_b(k1_const_dac_en),
 		.dac_clk(dac1_clk),
 		.no_bunches_b(no_bunches),
 		.no_samples_b(no_samples),
 		.sample_spacing_b(sample_spacing),
 		.oflow(oflow)
+		
 		);
 `endif
 

@@ -47,7 +47,7 @@ reg [7:0] end_bunch_strb=0;
 // ***** Generate bunch strobe *****
 
 always @ (posedge clk) begin
-LUTcond<=i==b2_strobe+1|| i== b2_strobe+sample_spacing+1;
+LUTcond<=i==b2_strobe+3|| i== b2_strobe+sample_spacing+3;
 if (store_strb) begin
 i<=i+1;
 end
@@ -65,8 +65,8 @@ cond3<=i==end_bunch_strb;     // To send bunch strobe low
 
 if (~store_strb) begin
 bunch_counter<=0;
-start_bunch_strb<=b1_strobe-2;
-end_bunch_strb<=b1_strobe+no_samples-2; // Bunch strobe stays high for no_samples samples
+start_bunch_strb<=b1_strobe-1;
+end_bunch_strb<=b1_strobe+no_samples-1; // Bunch strobe stays high for no_samples samples
 end
 else if (cond1) begin
 end
