@@ -59,8 +59,12 @@ module timing_synch_fsm #(parameter FASTCLK_PERIOD = 2.8) (
 	input [7:0] p3_b3_pos,*/
 	//input [6:0] trig_out_delay,
 	//input [7:0] trig_out_delay2,
-	//output reg		amp_trig,
-	//output reg		amp_trig2,
+	`ifdef BUILD_ATF
+		input [6:0] trig_out1_delay,
+		input [6:0] trig_out2_delay,
+		output reg amp_trig1_out = 1'b0,
+		output reg amp_trig2_out = 1'b0,
+	`endif
 	output reg		store_strb_b = 1'b0,
 	/*output reg		p1_bunch_strb,
 	output reg		p2_bunch_strb,
@@ -219,10 +223,34 @@ reg sample_en_b = 1'b0;
 reg sampling_done = 1'b0;
 reg [11:0] warmUp_ctr = 12'd0;
 
+`ifdef BUILD_ATF
+	localparam AMP_TRIG_OFFSET = 8'd192;
+	(* ASYNC_REG = "TRUE" *) reg [6:0] trig_out1_delay_a = 7'd0, trig_out1_delay_b = 7'd0, trig_out2_delay_a = 7'd0, trig_out2_delay_b = 7'd0;
+	reg [11:0] end_amp_trig1_del = 12'd0, end_amp_trig2_del = 12'd0, trig_out1_delay_tot = 12'd0, trig_out2_delay_tot = 12'd0;
+	reg [11:0] trig_out_delay_int = 12'd0;
+	reg amp_trig1 = 1'b0, amp_trig2 = 1'b0;
+`endif
+
 always @(posedge fastClk) begin
 	adc_align_mon_tc_fast_a <= adc_align_mon_tc;
 	adc_align_mon_tc_fast_b <= adc_align_mon_tc_fast_a;
 	sample_en_b <= sample_en;
+	`ifdef BUILD_ATF
+		//synchonisers for UART signal
+		trig_out1_delay_a <= trig_out1_delay;
+		trig_out1_delay_b <= trig_out1_delay_a;
+		trig_out2_delay_a <= trig_out2_delay;
+		trig_out2_delay_b <= trig_out2_delay_a;
+		//Registers for pipelieing
+		amp_trig1_out <= amp_trig1;
+		amp_trig2_out <= amp_trig2;
+		// Amplifier timing regs
+		trig_out_delay_int <= trig_delay_b - AMP_TRIG_OFFSET;
+		trig_out1_delay_tot <= trig_out_delay_int + trig_out1_delay_b;
+		trig_out2_delay_tot <= trig_out_delay_int + trig_out2_delay_b;
+		end_amp_trig1_del <= trig_out1_delay_tot + 2'd2;
+		end_amp_trig2_del <= trig_out2_delay_tot + 2'd2;
+	`endif
 	if (~triggered) begin
 		//trig_count <= 17'd0;
 		trig_count <= 12'd0;
@@ -238,6 +266,17 @@ always @(posedge fastClk) begin
 		//Trigger edge detected.  Begin counting ring clock cycles
 		if (trigSync) trig_count <= trig_count + 1;
 		else trig_count <= trig_count;
+		
+		`ifdef BUILD_ATF
+			if (trig_count == trig_out1_delay_tot) amp_trig1 <= 1'b1;
+			else if (trig_count == end_amp_trig1_del) amp_trig1 <= 1'b0;		
+			else amp_trig1 <= amp_trig1;
+			
+			if (trig_count == trig_out2_delay_tot) amp_trig2 <= 1'b1;
+			else if (trig_count == end_amp_trig2_del) amp_trig2 <= 1'b0;		
+			else amp_trig2 <= amp_trig2;
+		`endif	
+		
 		case (state)
 			IDLE: begin
 				warmUp_ctr <= warmUp_ctr;

@@ -258,6 +258,8 @@ always @(posedge clk357) begin
 	auxOutB <= auxOutB_a;
 	end*/
 	
+wire [3:0] TFSMstate;	
+	
 `ifdef INCLUDE_TESTBENCH
 	wire tb_trigOut, tb_dataOut;
 	supply0 gnd;
@@ -275,16 +277,35 @@ always @(posedge clk357) begin
 		.RING_CLK_HOLDOFF(8'd82),
 		.DOUT_OFFSET(8'd27),
 		.OPWIDTH(10'd1000)) bench(clk357, tb_trigOut, tb_dataOut);
-`else
-	//supply0 gnd;
+`elsif BUILD_ATF
+	wire tb_trig_out, amp1_trig, amp2_trig;
+	(* ASYNC_REG = "TRUE" *) reg trig_out_en_a = 1'b0;
+	//reg trig_out_en_b = 1'b0;
+	//reg trig_out_en_c = 1'b0;
+	always @ (posedge clk357) begin
+		trig_out_en_a <= trig_out_en;
+		//trig_out_en_b <= trig_out_en_a;
+		//trig_out_en_c <= trig_out_en_b;
+		auxOutA <= amp1_trig & trig_out_en_a;
+		auxOutB <= amp2_trig & trig_out_en_a;
+	end
+	assign tb_trigOut = 1'b0;
+`elsif BUILD_CTF
 	wire tb_trigOut, amp1_trig, amp2_trig;
+	AmpTrig2 #(26) AmpTrig1(clk357, TFSMstate[1], trig_out_en, trig_out1_delay, amp1_trig);
+	AmpTrig2 #(26) AmpTrig2(clk357, TFSMstate[1], trig_out_en, trig_out2_delay, amp2_trig);
 	assign tb_trigOut = 1'b0;
 	always @ (posedge clk357) begin
-		//auxOutA <= (auxOut_en) ? amp1_trig : 1'bz;
-		//auxOutB <= (auxOut_en) ? amp2_trig : 1'bz;
 		auxOutA <= amp1_trig;
 		auxOutB <= amp2_trig;
 		end
+`else
+	supply0 gnd;
+	wire tb_trig_out;
+	always @ (posedge clk357) begin
+		auxOutA <= gnd;
+		auxOutB <= gnd;
+	end
 `endif
 			
 // %%%%%%%% TRIGGER DIVIDER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%			
@@ -366,7 +387,7 @@ wire			led1_strb;
 //wire			p2_bunch_strb;
 //wire			p3_bunch_strb;
 wire 			adc_powerup;
-wire [3:0] TFSMstate;
+//wire [3:0] TFSMstate;
 
 timing_synch_fsm #(.FASTCLK_PERIOD(FASTCLK_PERIOD)) timing_synch1 (
 	.fastClk(clk357),
@@ -407,6 +428,12 @@ timing_synch_fsm #(.FASTCLK_PERIOD(FASTCLK_PERIOD)) timing_synch1 (
 //	.trig_out_delay2(cr_trig_out_delay2),
 //	.amp_trig(trig_out_temp),
 //	.amp_trig2(trig_out_temp2),
+	`ifdef BUILD_ATF
+		.trig_out1_delay(trig_out1_delay),
+		.trig_out2_delay(trig_out2_delay),
+		.amp_trig1_out(amp1_trig),
+		.amp_trig2_out(amp2_trig),
+	`endif
 	.store_strb_b(store_strb),
 	.adc_powerup(adc_powerup),
 	.adc_align_en(adc_align_en),
@@ -1341,11 +1368,10 @@ wire output_en;
 Interleaver Interleaver1(clk357, trig_strb, Interleave, FF_en, output_en);
 
 //Amplifier trigger control
-`ifdef INCLUDE_TESTBENCH
-`else  
-	AmpTrig2 #(26) AmpTrig1(clk357, TFSMstate[1], trig_out_en, trig_out1_delay, amp1_trig);
-	AmpTrig2 #(26) AmpTrig2(clk357, TFSMstate[1], trig_out_en, trig_out2_delay, amp2_trig);
-`endif
+//`ifndef INCLUDE_TESTBENCH
+//	AmpTrig2 #(26) AmpTrig1(clk357, TFSMstate[1], trig_out_en, trig_out1_delay, amp1_trig);
+//	AmpTrig2 #(26) AmpTrig2(clk357, TFSMstate[1], trig_out_en, trig_out2_delay, amp2_trig);
+//`endif
 
 //Instance FF module
 wire loop_oflowDet;
