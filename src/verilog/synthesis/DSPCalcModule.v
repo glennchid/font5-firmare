@@ -45,9 +45,11 @@ reg signed [14:0] delayed;
 reg signed [37:0] DSPout;
 //reg DSPoflow=1'b0;
 
+reg signed [20:0] chargeA= 21'd0;
 
 always @ (posedge clk) begin
-DSPtemp <= charge_in*signal_in;
+chargeA <= charge_in;
+DSPtemp <= chargeA*signal_in;
 //DSPtemp2=DSPtemp[24:12];   // Doesnt help timing!!!
 DSPout <= DSPtemp+{delayed, 12'b0}; // Remove 4096 factor added for LUT // delayed 25 bits, 
 pout<=DSPout[26:12];

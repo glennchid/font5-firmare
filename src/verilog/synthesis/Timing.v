@@ -45,9 +45,15 @@ reg [7:0] end_bunch_strb=0;
 
 
 // ***** Generate bunch strobe *****
+reg strbA = 1'b0, strbB = 1'b0, strbC = 1'b0;//, strbD =1'b0;
 
 always @ (posedge clk) begin
-LUTcond<=i==b2_strobe+3|| i== b2_strobe+sample_spacing+3;
+strbA <= (b2_strobe==i);
+strbB <= (b2_strobe+sample_spacing==i);
+strbC <= (strbA || strbB);
+//strbD <= strbC;
+LUTcond <= strbC;
+//LUTcond<=i==b2_strobe+3|| i== b2_strobe+sample_spacing+3;
 if (store_strb) begin
 i<=i+1;
 end

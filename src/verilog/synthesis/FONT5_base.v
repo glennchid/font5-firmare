@@ -155,11 +155,11 @@ reg [CR_WIDTH-1:0] ctrl_regs [0:N_CTRL_REGS-1];
 reg [CR_WIDTH-1:0] ctrl_regs_mem [0:N_CTRL_REGS-1];
 
 //`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs.v"
-`ifdef BUILD_ATF //temporary solution until ctrl_regs module is tidied up
+//`ifdef BUILD_ATF //temporary solution until ctrl_regs module is tidied up
 	`include "ctrl_regs.v"
-`else 
-	`include "ctrl_regs_CTF.v"
-`endif 
+//`else 
+//	`include "ctrl_regs_CTF.v"
+//`endif 
 
 //`ifdef XILINX_ISIM
 //	`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs_init_sim.v"
@@ -279,15 +279,14 @@ wire [3:0] TFSMstate;
 		.OPWIDTH(10'd1000)) bench(clk357, tb_trigOut, tb_dataOut);
 `elsif BUILD_ATF
 	wire tb_trig_out, amp1_trig, amp2_trig;
-	(* ASYNC_REG = "TRUE" *) reg trig_out_en_a = 1'b0;
-	//reg trig_out_en_b = 1'b0;
+	(* ASYNC_REG = "TRUE" *) reg trig_out_en_a = 1'b0, trig_out_en_b = 1'b0;
 	//reg trig_out_en_c = 1'b0;
 	always @ (posedge clk357) begin
 		trig_out_en_a <= trig_out_en;
-		//trig_out_en_b <= trig_out_en_a;
+		trig_out_en_b <= trig_out_en_a;
 		//trig_out_en_c <= trig_out_en_b;
-		auxOutA <= amp1_trig & trig_out_en_a;
-		auxOutB <= amp2_trig & trig_out_en_a;
+		auxOutA <= amp1_trig & trig_out_en_b;
+		auxOutB <= amp2_trig & trig_out_en_b;
 	end
 	assign tb_trigOut = 1'b0;
 `elsif BUILD_CTF
@@ -791,9 +790,15 @@ end
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data_fix : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data_fix : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data_fix : p1_sum_IIR_out;
-assign chan1_RAM_data = ((~IIRbypass_b[0]) ? {chan1_data, 3'b000} : chan1_IIR_out);// + {chan1_offset, 3'b000};
-assign chan2_RAM_data = ((~IIRbypass_b[1]) ? {chan2_data, 3'b000} : chan2_IIR_out);// + {chan2_offset, 3'b000};
-assign chan3_RAM_data = ((~IIRbypass_b[2]) ? {chan3_data, 3'b000} : chan3_IIR_out);// + {chan3_offset, 3'b000};
+`ifdef BUILD_ATF
+	assign chan1_RAM_data = {chan1_data, 3'b000};
+	assign chan2_RAM_data = {chan2_data, 3'b000};
+	assign chan3_RAM_data = {chan3_data, 3'b000};
+`else
+	assign chan1_RAM_data = ((~IIRbypass_b[0]) ? {chan1_data, 3'b000} : chan1_IIR_out);// + {chan1_offset, 3'b000};
+	assign chan2_RAM_data = ((~IIRbypass_b[1]) ? {chan2_data, 3'b000} : chan2_IIR_out);// + {chan2_offset, 3'b000};
+	assign chan3_RAM_data = ((~IIRbypass_b[2]) ? {chan3_data, 3'b000} : chan3_IIR_out);// + {chan3_offset, 3'b000};
+`endif
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data : p1_sum_IIR_out;
@@ -1020,14 +1025,19 @@ end
 //assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data_fix : p2_xdif_IIR_out;
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data_fix : p2_ydif_IIR_out;
 //assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data_fix : p2_sum_IIR_out;
-assign chan4_RAM_data = ((~IIRbypass_b[3]) ? {chan4_data, 3'b000} : chan4_IIR_out);// + {chan4_offset, 3'b000};
-assign chan5_RAM_data = ((~IIRbypass_b[4]) ? {chan5_data, 3'b000} : chan5_IIR_out);// + {chan5_offset, 3'b000};
-//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out;
-assign chan6_RAM_data = ((~IIRbypass_b[5]) ? {chan6_data, 3'b000} : chan6_IIR_out);// + {chan6_offset, 3'b000};
-//assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data : p2_xdif_IIR_out;
-//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data : p2_ydif_IIR_out;
-//assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data : p2_sum_IIR_out;
-
+`ifdef BUILD_ATF
+	assign chan4_RAM_data = {chan4_data, 3'b000};
+	assign chan5_RAM_data = {chan5_data, 3'b000};
+	assign chan6_RAM_data = {chan6_data, 3'b000};
+`else
+	assign chan4_RAM_data = ((~IIRbypass_b[3]) ? {chan4_data, 3'b000} : chan4_IIR_out);// + {chan4_offset, 3'b000};
+	assign chan5_RAM_data = ((~IIRbypass_b[4]) ? {chan5_data, 3'b000} : chan5_IIR_out);// + {chan5_offset, 3'b000};
+	//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out;
+	assign chan6_RAM_data = ((~IIRbypass_b[5]) ? {chan6_data, 3'b000} : chan6_IIR_out);// + {chan6_offset, 3'b000};
+	//assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data : p2_xdif_IIR_out;
+	//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data : p2_ydif_IIR_out;
+	//assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data : p2_sum_IIR_out;
+`endif
 //assign chan4_offset_oflow = (^chan4_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 //assign chan5_offset_oflow = (^chan5_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 //assign chan6_offset_oflow = (^chan6_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
@@ -1234,9 +1244,15 @@ end
 //assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data_fix : p3_xdif_IIR_out;
 //assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data_fix : p3_ydif_IIR_out;
 //assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data_fix : p3_sum_IIR_out;
-assign chan7_RAM_data = ((~IIRbypass_b[6]) ? {chan7_data, 3'b000} : chan7_IIR_out);// + {chan7_offset, 3'b000};
-assign chan8_RAM_data = ((~IIRbypass_b[7]) ? {chan8_data, 3'b000} : chan8_IIR_out);// + {chan8_offset, 3'b000};
-assign chan9_RAM_data = ((~IIRbypass_b[8]) ? {chan9_data, 3'b000} : chan9_IIR_out);// + {chan9_offset, 3'b000};
+`ifdef BUILD_ATF
+	assign chan7_RAM_data = {chan7_data, 3'b000};
+	assign chan8_RAM_data = {chan8_data, 3'b000};
+	assign chan9_RAM_data = {chan9_data, 3'b000};
+`else
+	assign chan7_RAM_data = ((~IIRbypass_b[6]) ? {chan7_data, 3'b000} : chan7_IIR_out);// + {chan7_offset, 3'b000};
+	assign chan8_RAM_data = ((~IIRbypass_b[7]) ? {chan8_data, 3'b000} : chan8_IIR_out);// + {chan8_offset, 3'b000};
+	assign chan9_RAM_data = ((~IIRbypass_b[8]) ? {chan9_data, 3'b000} : chan9_IIR_out);// + {chan9_offset, 3'b000};
+`endif
 //assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data : p3_xdif_IIR_out;
 //assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data : p3_ydif_IIR_out;
 //assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data : p3_sum_IIR_out;
