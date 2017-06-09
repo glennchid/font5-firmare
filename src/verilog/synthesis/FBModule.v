@@ -41,7 +41,7 @@ wire signed [16:0] bpm2_i_reg_int;
 wire signed [16:0] bpm2_q_reg_int;
 //wire dac_clk;
 reg dac_cond;
-reg signed [12:0] charge;
+//reg signed [12:0] charge;
 
 (* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [1:0] no_bunches_a,no_bunches;
 (* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [3:0] no_samples_a, no_samples;
@@ -66,7 +66,7 @@ b1_strobe_a<=b1_strobe_b;
 b1_strobe<=b1_strobe_a;
 b2_strobe_a<=b2_strobe_b;
 b2_strobe<=b2_strobe_a;
-charge<=q_signal;
+//charge<=q_signal;
 fb_en_a<=fb_en_b;
 fb_en<=fb_en_a;
 banana_corr_temp_a<=banana_corr_temp_b;
@@ -143,7 +143,8 @@ LUTCalc	LookUpTableModule(
 									  .bpm2_q_lut_addrb(bpm_lut_addrb),
 									  .bpm2_q_lut_web(bpm2_q_lut_web),
 									  .bpm2_q_lut_doutb(bpm2_q_lut_doutb),
-									  .q_signal(charge),
+									  //.q_signal(charge),
+									  .q_signal(q_signal),
 									  .bpm1_i_lut_out(g1_inv_q),
 									  .bpm1_q_lut_out(g2_inv_q),
 									  .bpm2_i_lut_out(g3_inv_q),
