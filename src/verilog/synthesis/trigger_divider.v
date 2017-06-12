@@ -60,7 +60,7 @@ reg trig_edge = 1'b0;
 
 reg disarm = 1'b0;
 `ifdef TRIG_DISARM // dis-arm trigger for ~700 ns following trigger edge
-	localparam DISARM_TC = 9'd511;
+	localparam DISARM_TC = 8'd255;
 	reg [7:0] trig_arm_ctr = 8'd0;
 	
 	

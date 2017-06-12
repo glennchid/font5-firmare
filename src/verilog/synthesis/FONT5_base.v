@@ -1549,7 +1549,8 @@ FBModule my_FBmod(
 		.no_bunches_b(no_bunches),
 		.no_samples_b(no_samples),
 		.sample_spacing_b(sample_spacing),
-		.oflow(oflow)
+		.oflow(loop_oflowDet)
+		//.oflow()
 		
 		);
 `endif
