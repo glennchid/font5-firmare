@@ -34,14 +34,14 @@
 	  (* IOB = "true" *) 	  output dac_clk,
 									  output reg oflow
                              );
-                            
+									 
 wire signed [16:0] bpm1_i_reg_int;
 wire signed [16:0] bpm1_q_reg_int;
 wire signed [16:0] bpm2_i_reg_int;
 wire signed [16:0] bpm2_q_reg_int;
 //wire dac_clk;
 reg dac_cond;
-reg signed [12:0] charge;
+//reg signed [12:0] charge;
 
 (* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [1:0] no_bunches_a,no_bunches;
 (* shreg_extract = "no" ,ASYNC_REG = "TRUE" *) reg [3:0] no_samples_a, no_samples;
@@ -66,7 +66,7 @@ b1_strobe_a<=b1_strobe_b;
 b1_strobe<=b1_strobe_a;
 b2_strobe_a<=b2_strobe_b;
 b2_strobe<=b2_strobe_a;
-charge<=q_signal;
+//charge<=q_signal;
 fb_en_a<=fb_en_b;
 fb_en<=fb_en_a;
 banana_corr_temp_a<=banana_corr_temp_b;
@@ -143,7 +143,8 @@ LUTCalc	LookUpTableModule(
 									  .bpm2_q_lut_addrb(bpm_lut_addrb),
 									  .bpm2_q_lut_web(bpm2_q_lut_web),
 									  .bpm2_q_lut_doutb(bpm2_q_lut_doutb),
-									  .q_signal(charge),
+									  //.q_signal(charge),
+									  .q_signal(q_signal),
 									  .bpm1_i_lut_out(g1_inv_q),
 									  .bpm1_q_lut_out(g2_inv_q),
 									  .bpm2_i_lut_out(g3_inv_q),
@@ -228,10 +229,11 @@ reg signed [14:0] sum1, sum2;
 reg output_cond1, output_cond2;
 //reg oflowsum1,oflowsum2;
 //reg oflowadd=0;
-reg signed [14:0] fb_sgnl_full=0;
+
+wire signed [15:0] fb_sgnl_16bit = sum1 + sum2;
+
 //reg dac_clk;
 reg oflow_temp;
-
 
 always @ (posedge clk)begin
 banana_corr<=banana_corr_temp;
@@ -244,13 +246,16 @@ output_cond2<=dac_cond & const_dac_en;
 ////oflow2<=((&sum1[15:12]==0)&(&!sum1[15:12]==0))|((&sum2[15:12]==0)&(&!sum2[15:12]==0));
 //oflowsum1<=(~&sum1[14:12] && ~&(~sum1[14:12]));
 //oflowsum2<=(~&sum2[14:12] && ~&(~sum2[14:12]));
-oflow_temp<=(~&fb_sgnl_full[14:12] && ~&(~fb_sgnl_full[14:12]));
+
+oflow_temp<=(~&fb_sgnl_16bit[15:12] && ~&(~fb_sgnl_16bit[15:12]));
+
 oflow<=oflow_temp|DSPoflow1|DSPoflow2|DSPoflow3|DSPoflow4;
 if (~store_strb) fb_sgnl<=0;
 else begin
 if (output_cond1) begin
-fb_sgnl<=sum1+sum2; // If reference not delayed by two samples then increase j accordingly
-fb_sgnl_full<=sum1+sum2; // If reference not delayed by two samples then increase j accordingly
+	
+fb_sgnl <= fb_sgnl_16bit[12:0];
+
 //oflowadd<=((sum1[12]&sum2[12]) & ~fb_sgnl[12])|((~sum1[12]&~sum2[12]) & fb_sgnl[12]);
 end
 else if (output_cond2) fb_sgnl<=const_dac;

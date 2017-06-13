@@ -45,9 +45,11 @@ reg signed [14:0] delayed;
 reg signed [37:0] DSPout;
 //reg DSPoflow=1'b0;
 
+reg signed [20:0] chargeA = 21'd0;
 
 always @ (posedge clk) begin
-DSPtemp <= charge_in*signal_in;
+chargeA <= charge_in;
+DSPtemp <= chargeA*signal_in;
 //DSPtemp2=DSPtemp[24:12];   // Doesnt help timing!!!
 DSPout <= DSPtemp+{delayed, 12'b0}; // Remove 4096 factor added for LUT // delayed 25 bits, 
 pout<=DSPout[26:12];
@@ -59,7 +61,7 @@ end
 // No. of samples after bunch strb
 always @ (posedge clk) begin
 if (~store_strb) begin
-j<=10;       
+j<=8;       
  end
 else if (bunch_strb) begin j<=0;
 //banana_fract<=banana_corr[12:2];    /// Bring in as 13 bit and pad with zeros to 25 bits
@@ -83,7 +85,7 @@ if (~store_strb) begin
 delayed_a<=0;
 end
 else if (delay_en==1) begin
-if (j==4) delayed_a<=pout;
+if (j==6) delayed_a<=pout;
 end
 end
 
@@ -99,12 +101,26 @@ else fb_cond<=0;
 end
 
 
+(* equivalent_register_removal = "no"*) reg delay_store_strb;
+reg clr_dac;
+reg delay_clr_dac;
+
+
 always @ (posedge clk) begin
 if (fb_en) begin
-if (j==6||j==7) dac_clk<=1;
+if (j==6||j==7||clr_dac==1||delay_clr_dac==1) dac_clk<=1;
 else dac_clk<=0;
 end
 else dac_clk<=0;
+end
+
+
+
+always @(posedge clk) begin
+delay_store_strb<=store_strb;
+delay_clr_dac<=clr_dac;
+if ((delay_store_strb==1)&(store_strb==0)) clr_dac<=1;
+else clr_dac<=0;
 end
 
 endmodule

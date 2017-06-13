@@ -55,8 +55,8 @@ initial begin
 		ctrl_regs_mem[124] = 7'b0001101; // diodeGating = 1; oflowMode = 2(saturate); useDiode = 1;
 	`else
 		ctrl_regs[96] = 7'd8; // Baud_rate 460.8 kbps
-		ctrl_regs[110] = 7'd8; ///DigInA threshold
-		ctrl_regs[111] = 7'd8; ///DigInB threshold		
+		ctrl_regs[110] = 7'd4; ///DigInA threshold
+		ctrl_regs[111] = 7'd4; ///DigInB threshold		
 		ctrl_regs[119] = 7'b0010100; // top seven bits of ten-bit decimal "164"
 		ctrl_regs[120] = 7'b1001111; // [bottom three bits of above,  top four bits of channel select (ones hot)]
 		ctrl_regs[121] = 7'b1111110; // [bottom five bits of channel select (ones hot), top two bits of eight-bit decimal "164"
@@ -65,8 +65,8 @@ initial begin
 		ctrl_regs[124] = 7'b0001101; // diodeGating = 1; oflowMode = 2(saturate); useDiode = 1;
 		
 		ctrl_regs_mem[96] = 7'd8; // Baud_rate 460.8 kbps
-		ctrl_regs_mem[110]= 7'd8; ///DigInA threshold
-		ctrl_regs_mem[111]= 7'd8; ///DigInB threshold		
+		ctrl_regs_mem[110]= 7'd4; ///DigInA threshold
+		ctrl_regs_mem[111]= 7'd4; ///DigInB threshold		
 		ctrl_regs_mem[119] = 7'b0010100; // top seven bits of ten-bit decimal "164"
 		ctrl_regs_mem[120] = 7'b1001111; // [bottom three bits of above,  top four bits of channel select (ones hot)]
 		ctrl_regs_mem[121] = 7'b1111110; // [bottom five bits of channel select (ones hot), top two bits of eight-bit decimal "164"

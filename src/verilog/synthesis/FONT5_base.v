@@ -155,11 +155,11 @@ reg [CR_WIDTH-1:0] ctrl_regs [0:N_CTRL_REGS-1];
 reg [CR_WIDTH-1:0] ctrl_regs_mem [0:N_CTRL_REGS-1];
 
 //`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs.v"
-`ifdef BUILD_ATF //temporary solution until ctrl_regs module is tidied up
+//`ifdef BUILD_ATF //temporary solution until ctrl_regs module is tidied up
 	`include "ctrl_regs.v"
-`else 
-	`include "ctrl_regs_CTF.v"
-`endif 
+//`else 
+//	`include "ctrl_regs_CTF.v"
+//`endif 
 
 //`ifdef XILINX_ISIM
 //	`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs_init_sim.v"
@@ -258,6 +258,8 @@ always @(posedge clk357) begin
 	auxOutB <= auxOutB_a;
 	end*/
 	
+wire [3:0] TFSMstate;	
+	
 `ifdef INCLUDE_TESTBENCH
 	wire tb_trigOut, tb_dataOut;
 	supply0 gnd;
@@ -275,16 +277,34 @@ always @(posedge clk357) begin
 		.RING_CLK_HOLDOFF(8'd82),
 		.DOUT_OFFSET(8'd27),
 		.OPWIDTH(10'd1000)) bench(clk357, tb_trigOut, tb_dataOut);
-`else
-	//supply0 gnd;
+`elsif BUILD_ATF
+	wire tb_trig_out, amp1_trig, amp2_trig;
+	(* ASYNC_REG = "TRUE" *) reg trig_out_en_a = 1'b0, trig_out_en_b = 1'b0;
+	//reg trig_out_en_c = 1'b0;
+	always @ (posedge clk357) begin
+		trig_out_en_a <= trig_out_en;
+		trig_out_en_b <= trig_out_en_a;
+		//trig_out_en_c <= trig_out_en_b;
+		auxOutA <= amp1_trig & trig_out_en_b;
+		auxOutB <= amp2_trig & trig_out_en_b;
+	end
+	assign tb_trigOut = 1'b0;
+`elsif BUILD_CTF
 	wire tb_trigOut, amp1_trig, amp2_trig;
+	AmpTrig2 #(26) AmpTrig1(clk357, TFSMstate[1], trig_out_en, trig_out1_delay, amp1_trig);
+	AmpTrig2 #(26) AmpTrig2(clk357, TFSMstate[1], trig_out_en, trig_out2_delay, amp2_trig);
 	assign tb_trigOut = 1'b0;
 	always @ (posedge clk357) begin
-		//auxOutA <= (auxOut_en) ? amp1_trig : 1'bz;
-		//auxOutB <= (auxOut_en) ? amp2_trig : 1'bz;
 		auxOutA <= amp1_trig;
 		auxOutB <= amp2_trig;
 		end
+`else
+	supply0 gnd;
+	wire tb_trig_out;
+	always @ (posedge clk357) begin
+		auxOutA <= gnd;
+		auxOutB <= gnd;
+	end
 `endif
 			
 // %%%%%%%% TRIGGER DIVIDER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%			
@@ -366,7 +386,7 @@ wire			led1_strb;
 //wire			p2_bunch_strb;
 //wire			p3_bunch_strb;
 wire 			adc_powerup;
-wire [3:0] TFSMstate;
+//wire [3:0] TFSMstate;
 
 timing_synch_fsm #(.FASTCLK_PERIOD(FASTCLK_PERIOD)) timing_synch1 (
 	.fastClk(clk357),
@@ -407,6 +427,12 @@ timing_synch_fsm #(.FASTCLK_PERIOD(FASTCLK_PERIOD)) timing_synch1 (
 //	.trig_out_delay2(cr_trig_out_delay2),
 //	.amp_trig(trig_out_temp),
 //	.amp_trig2(trig_out_temp2),
+	`ifdef BUILD_ATF
+		.trig_out1_delay(trig_out1_delay),
+		.trig_out2_delay(trig_out2_delay),
+		.amp_trig1_out(amp1_trig),
+		.amp_trig2_out(amp2_trig),
+	`endif
 	.store_strb_b(store_strb),
 	.adc_powerup(adc_powerup),
 	.adc_align_en(adc_align_en),
@@ -764,9 +790,15 @@ end
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data_fix : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data_fix : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data_fix : p1_sum_IIR_out;
-assign chan1_RAM_data = ((~IIRbypass_b[0]) ? {chan1_data, 3'b000} : chan1_IIR_out);// + {chan1_offset, 3'b000};
-assign chan2_RAM_data = ((~IIRbypass_b[1]) ? {chan2_data, 3'b000} : chan2_IIR_out);// + {chan2_offset, 3'b000};
-assign chan3_RAM_data = ((~IIRbypass_b[2]) ? {chan3_data, 3'b000} : chan3_IIR_out);// + {chan3_offset, 3'b000};
+`ifdef BUILD_ATF
+	assign chan1_RAM_data = {chan1_data, 3'b000};
+	assign chan2_RAM_data = {chan2_data, 3'b000};
+	assign chan3_RAM_data = {chan3_data, 3'b000};
+`else
+	assign chan1_RAM_data = ((~IIRbypass_b[0]) ? {chan1_data, 3'b000} : chan1_IIR_out);// + {chan1_offset, 3'b000};
+	assign chan2_RAM_data = ((~IIRbypass_b[1]) ? {chan2_data, 3'b000} : chan2_IIR_out);// + {chan2_offset, 3'b000};
+	assign chan3_RAM_data = ((~IIRbypass_b[2]) ? {chan3_data, 3'b000} : chan3_IIR_out);// + {chan3_offset, 3'b000};
+`endif
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data : p1_sum_IIR_out;
@@ -993,14 +1025,19 @@ end
 //assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data_fix : p2_xdif_IIR_out;
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data_fix : p2_ydif_IIR_out;
 //assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data_fix : p2_sum_IIR_out;
-assign chan4_RAM_data = ((~IIRbypass_b[3]) ? {chan4_data, 3'b000} : chan4_IIR_out);// + {chan4_offset, 3'b000};
-assign chan5_RAM_data = ((~IIRbypass_b[4]) ? {chan5_data, 3'b000} : chan5_IIR_out);// + {chan5_offset, 3'b000};
-//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out;
-assign chan6_RAM_data = ((~IIRbypass_b[5]) ? {chan6_data, 3'b000} : chan6_IIR_out);// + {chan6_offset, 3'b000};
-//assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data : p2_xdif_IIR_out;
-//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data : p2_ydif_IIR_out;
-//assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data : p2_sum_IIR_out;
-
+`ifdef BUILD_ATF
+	assign chan4_RAM_data = {chan4_data, 3'b000};
+	assign chan5_RAM_data = {chan5_data, 3'b000};
+	assign chan6_RAM_data = {chan6_data, 3'b000};
+`else
+	assign chan4_RAM_data = ((~IIRbypass_b[3]) ? {chan4_data, 3'b000} : chan4_IIR_out);// + {chan4_offset, 3'b000};
+	assign chan5_RAM_data = ((~IIRbypass_b[4]) ? {chan5_data, 3'b000} : chan5_IIR_out);// + {chan5_offset, 3'b000};
+	//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out;
+	assign chan6_RAM_data = ((~IIRbypass_b[5]) ? {chan6_data, 3'b000} : chan6_IIR_out);// + {chan6_offset, 3'b000};
+	//assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data : p2_xdif_IIR_out;
+	//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data : p2_ydif_IIR_out;
+	//assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data : p2_sum_IIR_out;
+`endif
 //assign chan4_offset_oflow = (^chan4_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 //assign chan5_offset_oflow = (^chan5_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 //assign chan6_offset_oflow = (^chan6_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
@@ -1207,9 +1244,15 @@ end
 //assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data_fix : p3_xdif_IIR_out;
 //assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data_fix : p3_ydif_IIR_out;
 //assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data_fix : p3_sum_IIR_out;
-assign chan7_RAM_data = ((~IIRbypass_b[6]) ? {chan7_data, 3'b000} : chan7_IIR_out);// + {chan7_offset, 3'b000};
-assign chan8_RAM_data = ((~IIRbypass_b[7]) ? {chan8_data, 3'b000} : chan8_IIR_out);// + {chan8_offset, 3'b000};
-assign chan9_RAM_data = ((~IIRbypass_b[8]) ? {chan9_data, 3'b000} : chan9_IIR_out);// + {chan9_offset, 3'b000};
+`ifdef BUILD_ATF
+	assign chan7_RAM_data = {chan7_data, 3'b000};
+	assign chan8_RAM_data = {chan8_data, 3'b000};
+	assign chan9_RAM_data = {chan9_data, 3'b000};
+`else
+	assign chan7_RAM_data = ((~IIRbypass_b[6]) ? {chan7_data, 3'b000} : chan7_IIR_out);// + {chan7_offset, 3'b000};
+	assign chan8_RAM_data = ((~IIRbypass_b[7]) ? {chan8_data, 3'b000} : chan8_IIR_out);// + {chan8_offset, 3'b000};
+	assign chan9_RAM_data = ((~IIRbypass_b[8]) ? {chan9_data, 3'b000} : chan9_IIR_out);// + {chan9_offset, 3'b000};
+`endif
 //assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data : p3_xdif_IIR_out;
 //assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data : p3_ydif_IIR_out;
 //assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data : p3_sum_IIR_out;
@@ -1341,11 +1384,10 @@ wire output_en;
 Interleaver Interleaver1(clk357, trig_strb, Interleave, FF_en, output_en);
 
 //Amplifier trigger control
-`ifdef INCLUDE_TESTBENCH
-`else  
-	AmpTrig2 #(26) AmpTrig1(clk357, TFSMstate[1], trig_out_en, trig_out1_delay, amp1_trig);
-	AmpTrig2 #(26) AmpTrig2(clk357, TFSMstate[1], trig_out_en, trig_out2_delay, amp2_trig);
-`endif
+//`ifndef INCLUDE_TESTBENCH
+//	AmpTrig2 #(26) AmpTrig1(clk357, TFSMstate[1], trig_out_en, trig_out1_delay, amp1_trig);
+//	AmpTrig2 #(26) AmpTrig2(clk357, TFSMstate[1], trig_out_en, trig_out2_delay, amp2_trig);
+//`endif
 
 //Instance FF module
 wire loop_oflowDet;
@@ -1507,7 +1549,8 @@ FBModule my_FBmod(
 		.no_bunches_b(no_bunches),
 		.no_samples_b(no_samples),
 		.sample_spacing_b(sample_spacing),
-		.oflow(oflow)
+		.oflow(loop_oflowDet)
+		//.oflow()
 		
 		);
 `endif
