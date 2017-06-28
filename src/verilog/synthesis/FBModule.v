@@ -226,11 +226,29 @@ DSPCalcModule DSPModule4(
 // ***** Clock DAC/Assign fb_sgnl *****
 
 reg signed [14:0] sum1, sum2;
-reg output_cond1, output_cond2;
+reg output_cond2;
 //reg oflowsum1,oflowsum2;
 //reg oflowadd=0;
+reg [12:0] fb_sgnl_12bit;
+wire signed [15:0] fb_sgnl_16bit = sum1 + sum2 ;
 
-wire signed [15:0] fb_sgnl_16bit = sum1 + sum2;
+
+always @(posedge clk) begin
+fb_sgnl_12bit = 0; 
+if (fb_sgnl_16bit[15]) begin
+if ( (~fb_sgnl_16bit[14:12]) == 23'b0) begin
+fb_sgnl_12bit = fb_sgnl_16bit[12:0];
+end else begin
+fb_sgnl_12bit = 13'b1000000000000;
+end
+end else begin
+if ( (fb_sgnl_16bit[14:12]) == 23'b0) begin
+fb_sgnl_12bit = fb_sgnl_16bit[12:0];
+end else begin
+fb_sgnl_12bit = 13'b0111111111111;
+end	
+end
+end
 
 //reg dac_clk;
 reg oflow_temp;
@@ -238,31 +256,16 @@ reg oflow_temp;
 always @ (posedge clk)begin
 banana_corr<=banana_corr_temp;
 dac_cond<=fb_cond; 
-//dac_clk<=dac_cond; 
 sum1<=pout+pout2;
 sum2<=pout3+pout4+banana_corr;
-output_cond1<=dac_cond & !const_dac_en;
-output_cond2<=dac_cond & const_dac_en;
-////oflow2<=((&sum1[15:12]==0)&(&!sum1[15:12]==0))|((&sum2[15:12]==0)&(&!sum2[15:12]==0));
-//oflowsum1<=(~&sum1[14:12] && ~&(~sum1[14:12]));
-//oflowsum2<=(~&sum2[14:12] && ~&(~sum2[14:12]));
-
+output_cond2<=dac_cond;
 oflow_temp<=(~&fb_sgnl_16bit[15:12] && ~&(~fb_sgnl_16bit[15:12]));
-
 oflow<=oflow_temp|DSPoflow1|DSPoflow2|DSPoflow3|DSPoflow4;
 if (~store_strb) fb_sgnl<=0;
 else begin
-if (output_cond1) begin
-	
-fb_sgnl <= fb_sgnl_16bit[12:0];
-
-//oflowadd<=((sum1[12]&sum2[12]) & ~fb_sgnl[12])|((~sum1[12]&~sum2[12]) & fb_sgnl[12]);
-end
-else if (output_cond2) fb_sgnl<=const_dac;
-//else fb_sgnl<=0;
+if (output_cond2) fb_sgnl <= (const_dac_en)? const_dac:fb_sgnl_12bit;
 end
 end
-
 
 endmodule
 
