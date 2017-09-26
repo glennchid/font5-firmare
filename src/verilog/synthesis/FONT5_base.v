@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 	   John Admams Institute at the University of Oxford
+// Company: 	   John Adams Institute at the University of Oxford
 // Engineer: 	   Glenn Christian
 // 
 // Create Date:    09:24:59 10/24/2009 
@@ -13,9 +13,13 @@
 //
 // Dependencies: 
 //
+
 //
 //////////////////////////////////////////////////////////////////////////////////
 module FONT5_base(
+`ifdef	XILINX_ISIM	
+		output store_strb,
+`endif
 		//Inputs from top level wrapper
 		input clk357, 
 		input clk40,
@@ -118,7 +122,14 @@ module FONT5_base(
 //parameters and defintions
 parameter DSP_WIDTH = 16;
 //`include "font5_base_top.vh"
-`include "definitions.vh"
+//`include "definitions.vh"   // NO NEED TO INCLUDE ANYMORE AS IT IS DEFINED AS GLOBAL
+
+`ifdef FASTCLK_192MHZ
+	parameter FASTCLK_PERIOD = 5.208; 
+`else
+	parameter FASTCLK_PERIOD = 2.800;
+`endif
+
 //`define INCLUDE_TESTBENCH
 
 //`define DOUBLE_CONTROL_REGS
@@ -128,7 +139,7 @@ parameter DSP_WIDTH = 16;
 //`define DISABLE_AUXOUTS;
 
 //`define LOAD_ATF_DEFAULTS
-`define LOAD_CTF_DEFAULTS
+`define LOAD_ATF_DEFAULTS
 
 
 `ifdef DOUBLE_CONTROL_REGS
@@ -144,8 +155,13 @@ reg [CR_WIDTH-1:0] ctrl_regs [0:N_CTRL_REGS-1];
 reg [CR_WIDTH-1:0] ctrl_regs_mem [0:N_CTRL_REGS-1];
 
 //`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs.v"
-`include "ctrl_regs.v"
-//`ifdef XILINX_ISIM 
+//`ifdef BUILD_ATF //temporary solution until ctrl_regs module is tidied up
+	`include "ctrl_regs.v"
+//`else 
+//	`include "ctrl_regs_CTF.v"
+//`endif 
+
+//`ifdef XILINX_ISIM
 //	`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs_init_sim.v"
 //`else 
 //	`include "H:\Firmware\FONT5_base\sources\verilog\ctrl_regs_init.v"
@@ -242,6 +258,8 @@ always @(posedge clk357) begin
 	auxOutB <= auxOutB_a;
 	end*/
 	
+wire [3:0] TFSMstate;	
+	
 `ifdef INCLUDE_TESTBENCH
 	wire tb_trigOut, tb_dataOut;
 	supply0 gnd;
@@ -259,16 +277,34 @@ always @(posedge clk357) begin
 		.RING_CLK_HOLDOFF(8'd82),
 		.DOUT_OFFSET(8'd27),
 		.OPWIDTH(10'd1000)) bench(clk357, tb_trigOut, tb_dataOut);
-`else
-	//supply0 gnd;
+`elsif BUILD_ATF
+	wire tb_trig_out, amp1_trig, amp2_trig;
+	(* ASYNC_REG = "TRUE" *) reg trig_out_en_a = 1'b0, trig_out_en_b = 1'b0;
+	//reg trig_out_en_c = 1'b0;
+	always @ (posedge clk357) begin
+		trig_out_en_a <= trig_out_en;
+		trig_out_en_b <= trig_out_en_a;
+		//trig_out_en_c <= trig_out_en_b;
+		auxOutA <= amp1_trig & trig_out_en_b;
+		auxOutB <= amp2_trig & trig_out_en_b;
+	end
+	assign tb_trigOut = 1'b0;
+`elsif BUILD_CTF
 	wire tb_trigOut, amp1_trig, amp2_trig;
+	AmpTrig2 #(26) AmpTrig1(clk357, TFSMstate[1], trig_out_en, trig_out1_delay, amp1_trig);
+	AmpTrig2 #(26) AmpTrig2(clk357, TFSMstate[1], trig_out_en, trig_out2_delay, amp2_trig);
 	assign tb_trigOut = 1'b0;
 	always @ (posedge clk357) begin
-		//auxOutA <= (auxOut_en) ? amp1_trig : 1'bz;
-		//auxOutB <= (auxOut_en) ? amp2_trig : 1'bz;
 		auxOutA <= amp1_trig;
 		auxOutB <= amp2_trig;
 		end
+`else
+	supply0 gnd;
+	wire tb_trig_out;
+	always @ (posedge clk357) begin
+		auxOutA <= gnd;
+		auxOutB <= gnd;
+	end
 `endif
 			
 // %%%%%%%% TRIGGER DIVIDER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%			
@@ -350,7 +386,7 @@ wire			led1_strb;
 //wire			p2_bunch_strb;
 //wire			p3_bunch_strb;
 wire 			adc_powerup;
-wire [3:0] TFSMstate;
+//wire [3:0] TFSMstate;
 
 timing_synch_fsm #(.FASTCLK_PERIOD(FASTCLK_PERIOD)) timing_synch1 (
 	.fastClk(clk357),
@@ -391,6 +427,12 @@ timing_synch_fsm #(.FASTCLK_PERIOD(FASTCLK_PERIOD)) timing_synch1 (
 //	.trig_out_delay2(cr_trig_out_delay2),
 //	.amp_trig(trig_out_temp),
 //	.amp_trig2(trig_out_temp2),
+	`ifdef BUILD_ATF
+		.trig_out1_delay(trig_out1_delay),
+		.trig_out2_delay(trig_out2_delay),
+		.amp_trig1_out(amp1_trig),
+		.amp_trig2_out(amp2_trig),
+	`endif
 	.store_strb_b(store_strb),
 	.adc_powerup(adc_powerup),
 	.adc_align_en(adc_align_en),
@@ -748,9 +790,15 @@ end
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data_fix : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data_fix : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data_fix : p1_sum_IIR_out;
-assign chan1_RAM_data = ((~IIRbypass_b[0]) ? {chan1_data, 3'b000} : chan1_IIR_out);// + {chan1_offset, 3'b000};
-assign chan2_RAM_data = ((~IIRbypass_b[1]) ? {chan2_data, 3'b000} : chan2_IIR_out);// + {chan2_offset, 3'b000};
-assign chan3_RAM_data = ((~IIRbypass_b[2]) ? {chan3_data, 3'b000} : chan3_IIR_out);// + {chan3_offset, 3'b000};
+`ifdef BUILD_ATF
+	assign chan1_RAM_data = {chan1_data, 3'b000};
+	assign chan2_RAM_data = {chan2_data, 3'b000};
+	assign chan3_RAM_data = {chan3_data, 3'b000};
+`else
+	assign chan1_RAM_data = ((~IIRbypass_b[0]) ? {chan1_data, 3'b000} : chan1_IIR_out);// + {chan1_offset, 3'b000};
+	assign chan2_RAM_data = ((~IIRbypass_b[1]) ? {chan2_data, 3'b000} : chan2_IIR_out);// + {chan2_offset, 3'b000};
+	assign chan3_RAM_data = ((~IIRbypass_b[2]) ? {chan3_data, 3'b000} : chan3_IIR_out);// + {chan3_offset, 3'b000};
+`endif
 //assign p1_xdif_RAM_data = (~IIRbypass_b[0]) ? p1_xdif_data : p1_xdif_IIR_out;
 //assign p1_ydif_RAM_data = (~IIRbypass_b[1]) ? p1_ydif_data : p1_ydif_IIR_out;
 //assign p1_sum_RAM_data = (~IIRbypass_b[2]) ? p1_sum_data : p1_sum_IIR_out;
@@ -977,14 +1025,19 @@ end
 //assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data_fix : p2_xdif_IIR_out;
 //assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data_fix : p2_ydif_IIR_out;
 //assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data_fix : p2_sum_IIR_out;
-assign chan4_RAM_data = ((~IIRbypass_b[3]) ? {chan4_data, 3'b000} : chan4_IIR_out);// + {chan4_offset, 3'b000};
-assign chan5_RAM_data = ((~IIRbypass_b[4]) ? {chan5_data, 3'b000} : chan5_IIR_out);// + {chan5_offset, 3'b000};
-//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out;
-assign chan6_RAM_data = ((~IIRbypass_b[5]) ? {chan6_data, 3'b000} : chan6_IIR_out);// + {chan6_offset, 3'b000};
-//assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data : p2_xdif_IIR_out;
-//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data : p2_ydif_IIR_out;
-//assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data : p2_sum_IIR_out;
-
+`ifdef BUILD_ATF
+	assign chan4_RAM_data = {chan4_data, 3'b000};
+	assign chan5_RAM_data = {chan5_data, 3'b000};
+	assign chan6_RAM_data = {chan6_data, 3'b000};
+`else
+	assign chan4_RAM_data = ((~IIRbypass_b[3]) ? {chan4_data, 3'b000} : chan4_IIR_out);// + {chan4_offset, 3'b000};
+	assign chan5_RAM_data = ((~IIRbypass_b[4]) ? {chan5_data, 3'b000} : chan5_IIR_out);// + {chan5_offset, 3'b000};
+	//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? {p2_ydif_data, 3'b000} : p2_ydif_IIR_out;
+	assign chan6_RAM_data = ((~IIRbypass_b[5]) ? {chan6_data, 3'b000} : chan6_IIR_out);// + {chan6_offset, 3'b000};
+	//assign p2_xdif_RAM_data = (~IIRbypass_b[3]) ? p2_xdif_data : p2_xdif_IIR_out;
+	//assign p2_ydif_RAM_data = (~IIRbypass_b[4]) ? p2_ydif_data : p2_ydif_IIR_out;
+	//assign p2_sum_RAM_data = (~IIRbypass_b[5]) ? p2_sum_data : p2_sum_IIR_out;
+`endif
 //assign chan4_offset_oflow = (^chan4_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 //assign chan5_offset_oflow = (^chan5_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
 //assign chan6_offset_oflow = (^chan6_RAM_data[DSP_WIDTH:DSP_WIDTH-1]) ? 1'b1 : 1'b0;
@@ -1191,9 +1244,15 @@ end
 //assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data_fix : p3_xdif_IIR_out;
 //assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data_fix : p3_ydif_IIR_out;
 //assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data_fix : p3_sum_IIR_out;
-assign chan7_RAM_data = ((~IIRbypass_b[6]) ? {chan7_data, 3'b000} : chan7_IIR_out);// + {chan7_offset, 3'b000};
-assign chan8_RAM_data = ((~IIRbypass_b[7]) ? {chan8_data, 3'b000} : chan8_IIR_out);// + {chan8_offset, 3'b000};
-assign chan9_RAM_data = ((~IIRbypass_b[8]) ? {chan9_data, 3'b000} : chan9_IIR_out);// + {chan9_offset, 3'b000};
+`ifdef BUILD_ATF
+	assign chan7_RAM_data = {chan7_data, 3'b000};
+	assign chan8_RAM_data = {chan8_data, 3'b000};
+	assign chan9_RAM_data = {chan9_data, 3'b000};
+`else
+	assign chan7_RAM_data = ((~IIRbypass_b[6]) ? {chan7_data, 3'b000} : chan7_IIR_out);// + {chan7_offset, 3'b000};
+	assign chan8_RAM_data = ((~IIRbypass_b[7]) ? {chan8_data, 3'b000} : chan8_IIR_out);// + {chan8_offset, 3'b000};
+	assign chan9_RAM_data = ((~IIRbypass_b[8]) ? {chan9_data, 3'b000} : chan9_IIR_out);// + {chan9_offset, 3'b000};
+`endif
 //assign p3_xdif_RAM_data = (~IIRbypass_b[6]) ? p3_xdif_data : p3_xdif_IIR_out;
 //assign p3_ydif_RAM_data = (~IIRbypass_b[7]) ? p3_ydif_data : p3_ydif_IIR_out;
 //assign p3_sum_RAM_data = (~IIRbypass_b[8]) ? p3_sum_data : p3_sum_IIR_out;
@@ -1325,11 +1384,10 @@ wire output_en;
 Interleaver Interleaver1(clk357, trig_strb, Interleave, FF_en, output_en);
 
 //Amplifier trigger control
-`ifdef INCLUDE_TESTBENCH
-`else  
-	AmpTrig2 #(26) AmpTrig1(clk357, TFSMstate[1], trig_out_en, trig_out1_delay, amp1_trig);
-	AmpTrig2 #(26) AmpTrig2(clk357, TFSMstate[1], trig_out_en, trig_out2_delay, amp2_trig);
-`endif
+//`ifndef INCLUDE_TESTBENCH
+//	AmpTrig2 #(26) AmpTrig1(clk357, TFSMstate[1], trig_out_en, trig_out1_delay, amp1_trig);
+//	AmpTrig2 #(26) AmpTrig2(clk357, TFSMstate[1], trig_out_en, trig_out2_delay, amp2_trig);
+//`endif
 
 //Instance FF module
 wire loop_oflowDet;
@@ -1378,6 +1436,8 @@ wire [12:0] k2constDAC = (constDAC2UARTor) ? {uart2_rx_data, 5'd0} : k2_const;
 `else assign DirIOB = 1'bz;
 `endif
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ////
+
+`ifdef BUILD_CTF
 
 PFF_DSP_16 loop (
 	.clk(clk357),
@@ -1430,6 +1490,70 @@ PFF_DSP_16 loop (
 	//.DAC4_en(dac4_clk)
 	);
 
+`endif	
+
+`ifdef BUILD_ATF
+wire k1_p2_lut_wr_en;
+wire k1_p3_lut_wr_en;
+wire k2_p2_lut_wr_en;
+wire k2_p3_lut_wr_en;
+`ifdef LUTRAMreadout
+	wire [14:0] daq_lutram_addr;
+	reg [14:0] bpm_lut_addrb;
+	always @(posedge clk40) bpm_lut_addrb <= (LUTRAMreadout) ?  daq_lutram_addr : gainlut_ld_addr;
+	wire [6:0] bpm1_i_lut_doutb;
+	wire [6:0] bpm1_q_lut_doutb;
+	wire [6:0] bpm2_i_lut_doutb;
+	wire [6:0] bpm2_q_lut_doutb;
+`endif
+
+FBModule my_FBmod(
+		.clk(clk357),
+		.sel(bpm_sel),
+		.ai_in(chan4_RAM_data[15:3]),
+		.aq_in(chan5_RAM_data[15:3]),
+		.bi_in(chan1_RAM_data[15:3]),
+	   .bq_in(chan2_RAM_data[15:3]),
+		.ci_in(chan7_RAM_data[15:3]),
+		.cq_in(chan8_RAM_data[15:3]),
+		.q_signal(chan9_RAM_data[15:3]),
+		.bpm_lut_dinb(gainlut_ld_data),
+		.bpm1_i_lut_web(k1_p2_lut_wr_en),
+		.bpm1_q_lut_web(k1_p3_lut_wr_en),
+		.bpm2_i_lut_web(k2_p2_lut_wr_en),
+		.bpm2_q_lut_web(k2_p3_lut_wr_en),
+		`ifdef LUTRAMreadout
+			.bpm_lut_addrb(bpm_lut_addrb),
+			.bpm1_i_lut_doutb(bpm1_i_lut_doutb),
+			.bpm1_q_lut_doutb(bpm1_q_lut_doutb),
+			.bpm2_i_lut_doutb(bpm2_i_lut_doutb),
+			.bpm2_q_lut_doutb(bpm2_q_lut_doutb),
+		`else
+			.bpm_lut_addrb(gainlut_ld_addr),
+			.bpm1_i_lut_doutb(),
+			.bpm1_q_lut_doutb(),
+			.bpm2_i_lut_doutb(),
+			.bpm2_q_lut_doutb(),
+		`endif
+		.fb_sgnl(dac1_out),
+		.fb_en_b(output_en),
+		.b1_strobe_b(b1_strobe),
+		.b2_strobe_b(b2_strobe),
+		.delay_en(k1_delayloop_on),
+		.store_strb(store_strb),
+	   .slow_clk(clk40),
+		.banana_corr_temp_b(k1_b2_offset),
+		.const_dac_b(k1constDAC),
+		.const_dac_en_b(k1_const_dac_en),
+		.dac_clk(dac1_clk),
+		.no_bunches_b(no_bunches),
+		.no_samples_b(no_samples),
+		.sample_spacing_b(sample_spacing),
+		.oflow(loop_oflowDet)
+		//.oflow()
+		
+		);
+`endif
 
 //assign dac3_clk = dac1_clk;
 //assign dac4_clk = dac2_clk;
@@ -1627,24 +1751,38 @@ assign dac2_clk = k2_dac_en;
 // timestamp and framing bytes, and enables DAQ_RAM transmission as appropriate
 // The sequence begins on the falling edge of store strobe
 
-// Sequence state parametrisation
-//parameter TRANS_WAIT = 				5'd0;
-parameter TRANS_STAMP =				5'd2;
-parameter TRANS_CHAN1 = 			5'd4;
-parameter TRANS_CHAN2 = 			5'd6;
-parameter TRANS_CHAN3 = 			5'd8;
-parameter TRANS_CHAN4 = 			5'd10;
-parameter TRANS_CHAN5 = 			5'd12;
-parameter TRANS_CHAN6 = 			5'd14;
-parameter TRANS_CHAN7 = 			5'd16;
-parameter TRANS_CHAN8 = 			5'd18;
-parameter TRANS_CHAN9 = 			5'd20;
-parameter TRANS_DAC_K1 = 			5'd22;
-parameter TRANS_DAC_K2 = 			5'd24;
-//parameter TRANS_357_RB =			5'd26;
-parameter TRANS_40_RB =				5'd28;
-parameter TRANS_MON_RB = 			5'd30;
+`ifdef LUTRAMreadout
+	localparam TRANS_STATE_WIDTH = 6;
+`else
+	localparam TRANS_STATE_WIDTH = 5;
+`endif
 
+// Sequence state parametrisation
+//parameter [TRANS_STATE_WIDTH-1:0] TRANS_WAIT = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd0};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_STAMP = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd2};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN1 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd4};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN2 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd6};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN3 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd8};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN4 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd10};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN5 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd12};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN6 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd14};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN7 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd16};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN8 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd18};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_CHAN9 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd20};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_DAC_K1 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd22};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_DAC_K2 = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd24};
+//parameter [TRANS_STATE_WIDTH-1:0] TRANS_357_RB =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd26};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_40_RB =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd28};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_MON_RB = {{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd30};
+`ifdef LUTRAMreadout
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K1P2 = {{(TRANS_STATE_WIDTH-6){1'b0}}, 6'd32};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K1P3 = {{(TRANS_STATE_WIDTH-6){1'b0}},6'd34};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K2P2 = {{(TRANS_STATE_WIDTH-6){1'b0}},6'd36};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K2P3 = {{(TRANS_STATE_WIDTH-6){1'b0}},6'd38};
+	wire			daq_lutram_tx_done;
+	wire			daq_lutram_tx_load;
+	reg			daq_lutram_tx_en = 1'b0;
+`endif
 // Control register readback control wires
 wire			daq_readback_tx_done;
 wire			daq_readback_tx_load;
@@ -1664,7 +1802,7 @@ wire [6:0]	daq_readback_mon_tx_data;
 
 reg			daq_readback_mon_tx_en = 1'b0;
 
-wire [4:0]  daq_trans_state;
+wire [TRANS_STATE_WIDTH-1:0]  daq_trans_state;
 wire 			daq_ram_tx_en;
 reg 			current_daq_ram_tx_done = 1'b0;
 //wire [7:0] 	daq_seq_tx_data;
@@ -1677,6 +1815,9 @@ DAQ_sequencer2 DAQ_sequencer(
 	.rst(dcm200_rst),
 	.strobe(p1_store_strb),
 	.poll_uart(poll_uart && ~run),
+	`ifdef LUTRAMreadout
+		.LUTRAMreadout(LUTRAMreadout),
+	`endif
 	.trans_done(current_daq_ram_tx_done),
 	.num_chans(num_chans),
 	.trans_state(daq_trans_state),
@@ -1705,6 +1846,9 @@ always @(posedge clk40) begin
 	//daq_readback357_tx_en 	<= 0;
 	daq_readback_tx_en		<= 0;
 	daq_readback_mon_tx_en 	<= 0;
+	`ifdef LUTRAMreadout
+		daq_lutram_tx_en <= 0;
+	`endif
 	case(daq_trans_state)
 		TRANS_CHAN1 : daq_chan1_tx_en <= daq_ram_tx_en;
 		TRANS_CHAN2 : daq_chan2_tx_en <= daq_ram_tx_en;
@@ -1720,6 +1864,12 @@ always @(posedge clk40) begin
 		//TRANS_357_RB  : daq_readback357_tx_en 		<= daq_ram_tx_en;
 		TRANS_40_RB   : daq_readback_tx_en  		<= daq_ram_tx_en;
 		TRANS_MON_RB  : daq_readback_mon_tx_en  	<= daq_ram_tx_en;
+		`ifdef LUTRAMreadout
+			TRANS_K1P2 : daq_lutram_tx_en  	<= daq_ram_tx_en;
+			TRANS_K1P3 : daq_lutram_tx_en  	<= daq_ram_tx_en;
+			TRANS_K2P2 : daq_lutram_tx_en  	<= daq_ram_tx_en;
+			TRANS_K2P3 : daq_lutram_tx_en  	<= daq_ram_tx_en;
+		`endif
 	endcase
 end
 	
@@ -1739,6 +1889,12 @@ always @(posedge clk40) begin
 		//TRANS_357_RB  : current_daq_ram_tx_done <= daq_readback357_tx_done;
 		TRANS_40_RB   : current_daq_ram_tx_done <= daq_readback_tx_done;
 		TRANS_MON_RB  : current_daq_ram_tx_done <= daq_readback_mon_tx_done;
+		`ifdef LUTRAMreadout
+			TRANS_K1P2 : current_daq_ram_tx_done  	<= daq_lutram_tx_done;
+			TRANS_K1P3 : current_daq_ram_tx_done  	<= daq_lutram_tx_done;
+			TRANS_K2P2 : current_daq_ram_tx_done  	<= daq_lutram_tx_done;
+			TRANS_K2P3 : current_daq_ram_tx_done  	<= daq_lutram_tx_done;
+		`endif
 		default		  : current_daq_ram_tx_done <= 0;
 	endcase
 end
@@ -1764,6 +1920,12 @@ always @(posedge clk40) begin
 		//TRANS_357_RB  : uart_tx_load <= daq_readback357_tx_load;
 		TRANS_40_RB   : uart_tx_load <= daq_readback_tx_load;
 		TRANS_MON_RB  : uart_tx_load <= daq_readback_mon_tx_load;
+		`ifdef LUTRAMreadout
+			TRANS_K1P2    : uart_tx_load <= daq_lutram_tx_load;
+			TRANS_K1P3    : uart_tx_load <= daq_lutram_tx_load;
+			TRANS_K2P2    : uart_tx_load <= daq_lutram_tx_load;
+			TRANS_K2P3    : uart_tx_load <= daq_lutram_tx_load;
+		`endif
 		//By default pass the sequencer's load signal
 		default		  : uart_tx_load <= daq_seq_tx_ld;
 	endcase
@@ -1786,6 +1948,12 @@ always @(posedge clk40) begin
 		//TRANS_357_RB  : uart_tx_data <= daq_readback357_tx_data;
 		TRANS_40_RB   : uart_tx_data <= {1'b1, daq_readback_tx_data};
 		TRANS_MON_RB  : uart_tx_data <= {1'b1, daq_readback_mon_tx_data};
+		`ifdef LUTRAMreadout
+			TRANS_K1P2	  : uart_tx_data <= {1'b1, bpm1_i_lut_doutb};
+			TRANS_K1P3	  : uart_tx_data <= {1'b1, bpm1_q_lut_doutb};
+			TRANS_K2P2	  : uart_tx_data <= {1'b1, bpm2_i_lut_doutb};
+			TRANS_K2P3	  : uart_tx_data <= {1'b1, bpm2_q_lut_doutb};
+		`endif
 		//By default pass the sequencer's data signal
 		default		  : uart_tx_data <= {1'b0, daq_seq_tx_data};
 	endcase
@@ -1927,11 +2095,25 @@ uart_decoder3 uart_decoder (
 );	 
 
 // **** Multiplex the gain lut load strobe ****
-//assign k1_p2_lut_wr_en = (gainlut_ld_select == 5'd0) ? gainlut_ld_en : 1'b0;
-//assign k1_p3_lut_wr_en = (gainlut_ld_select == 5'd1) ? gainlut_ld_en : 1'b0;
 assign trim_lut_wr_en = (gainlut_ld_select == 5'd2) ? gainlut_ld_en : 1'b0;
-//assign k2_p2_lut_wr_en = (gainlut_ld_select == 5'd3) ? gainlut_ld_en : 1'b0;
-//assign k2_p3_lut_wr_en = (gainlut_ld_select == 5'd4) ? gainlut_ld_en : 1'b0;
+`ifdef BUILD_ATF
+	assign k1_p2_lut_wr_en = (gainlut_ld_select == 5'd0) ? gainlut_ld_en : 1'b0;
+	assign k1_p3_lut_wr_en = (gainlut_ld_select == 5'd1) ? gainlut_ld_en : 1'b0;
+	assign k2_p2_lut_wr_en = (gainlut_ld_select == 5'd3) ? gainlut_ld_en : 1'b0;
+	assign k2_p3_lut_wr_en = (gainlut_ld_select == 5'd4) ? gainlut_ld_en : 1'b0;
+`endif
+
+`ifdef LUTRAMreadout
+	ctrl_reg_readback #(15,32768) lutram_readback (
+		.clk(clk40),
+		.rst(dcm200_rst),
+		.tx_en(daq_lutram_tx_en),
+		.tx_data_loaded(~uart_tx_empty),
+		.tx_data_ready(daq_lutram_tx_load),
+		.tx_complete(daq_lutram_tx_done),
+		.tx_cnt(daq_lutram_addr)
+	);
+`endif
 
 // ******* Control Registers *******************
 

@@ -463,6 +463,16 @@ NET "diginput2"  LOC = "AG5";
 #NET "dac4_out<12>" LOC = "AE12";
 
 ## ADVANCED TIMING CONSTRIANTS ##
-NET "FONT5_base_top/loop/opMode*" TIG; # Slow MUX_SEL control signal?
+#NET "FONT5_base_top/loop/opMode*" TIG; # Slow MUX_SEL control signal?
 #NET "FONT5_base_top/chan*_offset*" TIG;
+#NET "FONT5_base_top/ch1_dataRegConvert/dataInreg/tap_b*" TIG;
+#NET "FONT5_base_top/ch2_dataRegConvert/dataInreg/tap_b*" TIG;
+#NET "FONT5_base_top/ch3_dataRegConvert/dataInreg/tap_b*" TIG;
+#NET "FONT5_base_top/ch4_dataRegConvert/dataInreg/tap_b*" TIG;
+#NET "FONT5_base_top/ch5_dataRegConvert/dataInreg/tap_b*" TIG;
+#NET "FONT5_base_top/ch6_dataRegConvert/dataInreg/tap_b*" TIG;
+#NET "FONT5_base_top/ch7_dataRegConvert/dataInreg/tap_b*" TIG;
+#NET "FONT5_base_top/ch8_dataRegConvert/dataInreg/tap_b*" TIG;
+#NET "FONT5_base_top/ch9_dataRegConvert/dataInreg/tap_b*" TIG;
+
 #NET "iddr*_ce*" TIG;

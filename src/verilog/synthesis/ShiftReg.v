@@ -14,7 +14,7 @@ parameter INIT = 13'sd0;
 
 //reg [12:0] dsh_in [0:SRL_SIZE-1];
 
-(* shreg_extract = "no" *) reg [4:0] tap_b = 5'd2;
+(* equivalent_register_removal = "no" *) reg [4:0] tap_b = 5'd2;
 (* shreg_extract = "no" *) reg sr_bypass_b = 1'b1;
 
 //reg [12:0] dsh_out;

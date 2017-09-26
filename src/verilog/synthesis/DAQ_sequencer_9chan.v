@@ -33,6 +33,9 @@ module DAQ_sequencer2(
 	strobe,
 	poll_uart,
 	trans_done,
+	`ifdef LUTRAMreadout
+		LUTRAMreadout,
+	`endif
 	//num_chans_a,
 	num_chans,
 	trans_state,
@@ -44,15 +47,23 @@ module DAQ_sequencer2(
 	rs232_tx_ld
 );
 
+
+
 input 		clk40;
 input rst;
 input strobe;
 input poll_uart;
+`ifdef LUTRAMreadout
+	input LUTRAMreadout;
+	parameter TRANS_STATE_WIDTH = 6;
+`else
+	parameter TRANS_STATE_WIDTH = 5;
+`endif
 input trans_done;
 input rs232_tx_empty;
 //input [8:0] num_chans_a;
 input [8:0] num_chans;
-output reg [4:0] trans_state = 5'd0;
+output reg [TRANS_STATE_WIDTH-1:0] trans_state = {TRANS_STATE_WIDTH{1'd0}};
 output reg trans_en = 1'b0;
 output reg rst_out = 1'b0;
 output reg trig_rdy = 1'b0;
@@ -83,38 +94,50 @@ reg rs232_tx_empty_b = 1'b0;
 
 
 // State parameterisation
-parameter TRANS_WAIT = 				5'd0;
-parameter TRANS_STAMP_FRAME =		5'd1;
-parameter TRANS_STAMP =				5'd2;
-parameter TRANS_P1_XDIF_FRAME = 	5'd3;
-parameter TRANS_P1_XDIF = 			5'd4;
-parameter TRANS_P1_YDIF_FRAME =	5'd5;
-parameter TRANS_P1_YDIF = 			5'd6;
-parameter TRANS_P1_SUM_FRAME =	5'd7;
-parameter TRANS_P1_SUM = 			5'd8;
-parameter TRANS_P2_XDIF_FRAME = 	5'd9;
-parameter TRANS_P2_XDIF = 			5'd10;
-parameter TRANS_P2_YDIF_FRAME =	5'd11;
-parameter TRANS_P2_YDIF = 			5'd12;
-parameter TRANS_P2_SUM_FRAME =	5'd13;
-parameter TRANS_P2_SUM = 			5'd14;
-parameter TRANS_P3_XDIF_FRAME = 	5'd15;
-parameter TRANS_P3_XDIF = 			5'd16;
-parameter TRANS_P3_YDIF_FRAME =	5'd17;
-parameter TRANS_P3_YDIF = 			5'd18;
-parameter TRANS_P3_SUM_FRAME =	5'd19;
-parameter TRANS_P3_SUM = 			5'd20;
-parameter TRANS_DAC_K1_FRAME =	5'd21;
-parameter TRANS_DAC_K1 = 			5'd22;
-parameter TRANS_DAC_K2_FRAME =	5'd23;
-parameter TRANS_DAC_K2 = 			5'd24;
-parameter TRANS_357_RB_FRAME = 	5'd25;
-//parameter TRANS_357_RB =			5'd26;
-parameter TRANS_40_RB_FRAME = 	5'd27;
-parameter TRANS_40_RB =				5'd28;
-parameter TRANS_MON_RB_FRAME = 	5'd29;
-parameter TRANS_MON_RB = 			5'd30;
-parameter TRANS_TERM_BYTE = 		5'd31;
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_WAIT = 				{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd0};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_STAMP_FRAME =		{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd1};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_STAMP =				{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd2};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P1_XDIF_FRAME = 	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd3};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P1_XDIF = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd4};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P1_YDIF_FRAME =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd5};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P1_YDIF = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd6};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P1_SUM_FRAME =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd7};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P1_SUM = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd8};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P2_XDIF_FRAME = 	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd9};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P2_XDIF = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd10};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P2_YDIF_FRAME =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd11};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P2_YDIF = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd12};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P2_SUM_FRAME =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd13};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P2_SUM = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd14};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P3_XDIF_FRAME = 	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd15};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P3_XDIF = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd16};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P3_YDIF_FRAME =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd17};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P3_YDIF = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd18};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P3_SUM_FRAME =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd19};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_P3_SUM = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd20};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_DAC_K1_FRAME =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd21};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_DAC_K1 = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd22};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_DAC_K2_FRAME =	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd23};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_DAC_K2 = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd24};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_357_RB_FRAME = 	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd25};
+//parameter [TRANS_STATE_WIDTH-1:0] TRANS_357_RB =			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd26};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_40_RB_FRAME = 	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd27};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_40_RB =				{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd28};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_MON_RB_FRAME = 	{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd29};
+parameter [TRANS_STATE_WIDTH-1:0] TRANS_MON_RB = 			{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd30};
+`ifdef LUTRAMreadout
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K1P2_FRAME = 	{{(TRANS_STATE_WIDTH-6){1'b0}}, 6'd31};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K1P2 = 			{{(TRANS_STATE_WIDTH-6){1'b0}}, 6'd32};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K1P3_FRAME = 	{{(TRANS_STATE_WIDTH-6){1'b0}}, 6'd33};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K1P3 = 			{{(TRANS_STATE_WIDTH-6){1'b0}}, 6'd34};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K2P2_FRAME = 	{{(TRANS_STATE_WIDTH-6){1'b0}}, 6'd35};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K2P2 = 			{{(TRANS_STATE_WIDTH-6){1'b0}}, 6'd36};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K2P3_FRAME = 	{{(TRANS_STATE_WIDTH-6){1'b0}}, 6'd37};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_K2P3 = 			{{(TRANS_STATE_WIDTH-6){1'b0}}, 6'd38};
+	parameter [TRANS_STATE_WIDTH-1:0] TRANS_TERM_BYTE = 	{{(TRANS_STATE_WIDTH-6){1'b0}}, 6'd39};
+`else
+	parameter TRANS_TERM_BYTE = 		{{(TRANS_STATE_WIDTH-5){1'b0}}, 5'd31};
+`endif
 
 always @(posedge clk40) begin
 	//num_chans <= num_chans_a;
@@ -709,10 +732,155 @@ always @(posedge clk40) begin
 						if (trans_done) begin
 							trans_en 	<= 0;
 							//rst_out 		<= 1;
-							trans_state <= TRANS_TERM_BYTE;
+							`ifdef LUTRAMreadout
+								trans_state <= (LUTRAMreadout) ? TRANS_K1P2_FRAME : TRANS_TERM_BYTE;
+							`else
+								trans_state <= TRANS_TERM_BYTE;
+							`endif
 						end
 					end 
 				end
+				
+				`ifdef LUTRAMreadout
+					TRANS_K1P2_FRAME: begin
+						trig_rdy <= trig_rdy;
+						//Send P3 sum frame byte directly to uart
+						if (!rs232_tx_ld && rs232_tx_empty_b) begin
+							if (rs232_tx_pending) begin
+								//Transmission complete
+								rs232_tx_pending <= 0;
+								//Move to next state and enable DAQ_RAM transmission
+									trans_en 	<= 1;
+									trans_state <= TRANS_K1P2;
+							end else begin
+								//uart is empty.  Load byte to transmit
+								rs232_tx_buffer <= 7'd9;
+								rs232_tx_ld <= 1;
+							end
+						end else begin
+							if (rs232_tx_ld && !rs232_tx_empty_b) begin
+								//byte loaded to uart.  
+								//uart_tx_empty will stay low until transmission complete
+								rs232_tx_ld <= 0;
+								rs232_tx_pending <= 1;
+							end
+						end				
+					end
+					TRANS_K1P2: begin
+						trig_rdy <= trig_rdy;
+						//Transmit until done, and move to next state
+						if (trans_en) begin
+							if (trans_done) begin
+								trans_en 	<= 0;
+								trans_state <= TRANS_K1P3_FRAME;
+							end
+						end 
+					end								
+					TRANS_K1P3_FRAME: begin
+						trig_rdy <= trig_rdy;
+						//Send P3 sum frame byte directly to uart
+						if (!rs232_tx_ld && rs232_tx_empty_b) begin
+							if (rs232_tx_pending) begin
+								//Transmission complete
+								rs232_tx_pending <= 0;
+								//Move to next state and enable DAQ_RAM transmission
+									trans_en 	<= 1;
+									trans_state <= TRANS_K1P3;
+							end else begin
+								//uart is empty.  Load byte to transmit
+								rs232_tx_buffer <= 7'd11;
+								rs232_tx_ld <= 1;
+							end
+						end else begin
+							if (rs232_tx_ld && !rs232_tx_empty_b) begin
+								//byte loaded to uart.  
+								//uart_tx_empty will stay low until transmission complete
+								rs232_tx_ld <= 0;
+								rs232_tx_pending <= 1;
+							end
+						end				
+					end
+					TRANS_K1P3: begin
+						trig_rdy <= trig_rdy;
+						//Transmit until done, and move to next state
+						if (trans_en) begin
+							if (trans_done) begin
+								trans_en 	<= 0;
+								trans_state <= TRANS_K2P2_FRAME;
+							end
+						end 
+					end								
+					
+					TRANS_K2P2_FRAME: begin
+						trig_rdy <= trig_rdy;
+						//Send P3 sum frame byte directly to uart
+						if (!rs232_tx_ld && rs232_tx_empty_b) begin
+							if (rs232_tx_pending) begin
+								//Transmission complete
+								rs232_tx_pending <= 0;
+								//Move to next state and enable DAQ_RAM transmission
+									trans_en 	<= 1;
+									trans_state <= TRANS_K2P2;
+							end else begin
+								//uart is empty.  Load byte to transmit
+								rs232_tx_buffer <= 7'd12;
+								rs232_tx_ld <= 1;
+							end
+						end else begin
+							if (rs232_tx_ld && !rs232_tx_empty_b) begin
+								//byte loaded to uart.  
+								//uart_tx_empty will stay low until transmission complete
+								rs232_tx_ld <= 0;
+								rs232_tx_pending <= 1;
+							end
+						end				
+					end
+					TRANS_K2P2: begin
+						trig_rdy <= trig_rdy;
+						//Transmit until done, and move to next state
+						if (trans_en) begin
+							if (trans_done) begin
+								trans_en 	<= 0;
+								trans_state <= TRANS_K2P3_FRAME;
+							end
+						end 
+					end						
+
+					TRANS_K2P3_FRAME: begin
+						trig_rdy <= trig_rdy;
+						//Send P3 sum frame byte directly to uart
+						if (!rs232_tx_ld && rs232_tx_empty_b) begin
+							if (rs232_tx_pending) begin
+								//Transmission complete
+								rs232_tx_pending <= 0;
+								//Move to next state and enable DAQ_RAM transmission
+									trans_en 	<= 1;
+									trans_state <= TRANS_K2P3;
+							end else begin
+								//uart is empty.  Load byte to transmit
+								rs232_tx_buffer <= 7'd13;
+								rs232_tx_ld <= 1;
+							end
+						end else begin
+							if (rs232_tx_ld && !rs232_tx_empty_b) begin
+								//byte loaded to uart.  
+								//uart_tx_empty will stay low until transmission complete
+								rs232_tx_ld <= 0;
+								rs232_tx_pending <= 1;
+							end
+						end				
+					end
+					TRANS_K2P3: begin
+						trig_rdy <= trig_rdy;
+						//Transmit until done, and move to next state
+						if (trans_en) begin
+							if (trans_done) begin
+								trans_en 	<= 0;
+								trans_state <= TRANS_TERM_BYTE;
+							end
+						end 
+					end								
+				`endif
 				TRANS_TERM_BYTE: begin
 				//Send monitor readback frame byte directly to uart
 					if (!rs232_tx_ld && rs232_tx_empty_b) begin

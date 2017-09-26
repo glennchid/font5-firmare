@@ -173,7 +173,9 @@ parameter CH5_BITFLIP = (13'b0100110011010 ^ -13'sd4096);
 		.IDDR2_Q1(IDDR2_Q1), 
 		.IDDR2_Q2(IDDR2_Q2), 
 		.IDDR3_Q1(IDDR3_Q1), 
-		.IDDR3_Q2(IDDR3_Q2)
+		.IDDR3_Q2(IDDR3_Q2),
+		.DirIOB(DirIOB),
+		.store_strb(store_strb)
 	);
 
 	/*integer fid;
@@ -197,8 +199,8 @@ parameter CH5_BITFLIP = (13'b0100110011010 ^ -13'sd4096);
 		ch4_data_in_del = 13'sd0;
 		ch5_data_in_del = 13'sd0;
 		ch6_data_in_del = 0;
-		ch7_data_in_del = 0;
-		ch8_data_in_del = 0;
+		ch7_data_in_del = 13'sd100;
+		ch8_data_in_del = 13'sd500;
 		ch9_data_in_del = 0;
 		rs232_in = 0;
 		diginput1 = 0;
