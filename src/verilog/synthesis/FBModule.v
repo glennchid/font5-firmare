@@ -110,7 +110,8 @@ MuxModule Multiplexers(
 	.bpm2_q_reg_int_a(bpm2_q_reg_int), 
 	.bpm2_i_reg_int_a(bpm2_i_reg_int),
 	.clk(clk),  // static offset to be applied to I or Q
-	.dac_cond(dac_cond)
+	.dac_cond(dac_cond),
+	.store_strb(store_strb)
 );
 
 
@@ -172,7 +173,8 @@ DSPCalcModule DSPModule1(
 			.pout(pout),
 			.bunch_strb(bunch_strb),
 			.DSPoflow(DSPoflow1),
-			.fb_en(fb_en)
+			.fb_en(fb_en),
+			.no_samples(no_samples)
 //			.banana_corr(banana_corr),
 //			.fb_cond(fb_cond),
 //			.dac_clk(dac_clk)
@@ -189,7 +191,8 @@ DSPCalcModule DSPModule2(
 			.fb_cond(fb_cond),
 			.dac_clk(dac_clk),
 			.DSPoflow(DSPoflow2),
-			.fb_en(fb_en)
+			.fb_en(fb_en),
+			.no_samples(no_samples)
 //			.banana_corr(banana_corr)
 			);
 			
@@ -202,7 +205,8 @@ DSPCalcModule DSPModule3(
 			.pout(pout3),
 			.bunch_strb(bunch_strb),
 			.DSPoflow(DSPoflow3),
-			.fb_en(fb_en)
+			.fb_en(fb_en),
+			.no_samples(no_samples)
 //			.fb_cond(fb_cond),
 //			.dac_clk(dac_clk)
 //			.banana_corr(banana_corr)
@@ -217,7 +221,8 @@ DSPCalcModule DSPModule4(
 			.pout(pout4),
 			.bunch_strb(bunch_strb),
 			.DSPoflow(DSPoflow4),
-			.fb_en(fb_en)
+			.fb_en(fb_en),
+			.no_samples(no_samples)
 //			.fb_cond(fb_cond),
 //			.dac_clk(dac_clk)
 //			.banana_corr(banana_corr)

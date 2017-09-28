@@ -27,7 +27,8 @@ module DSPCalcModule(
 			input fb_en,
 			output reg signed [14:0] pout,
 			input bunch_strb,
-			output reg DSPoflow,
+		   input [3:0] no_samples,
+    		output reg DSPoflow,
 //			input signed [12:0] banana_corr,
 			output reg fb_cond,
 			output reg dac_clk
@@ -36,11 +37,12 @@ module DSPCalcModule(
 		
     );
 
-(* equivalent_register_removal = "no"*) reg [7:0] j;
+(* equivalent_register_removal = "no"*) reg [7:0] j =1;
+(* equivalent_register_removal = "no"*) reg k =0;
 
 reg signed [37:0]  DSPtemp;
 //reg signed [14:0] DSPtemp2;
-reg signed [14:0] delayed; 
+//reg signed [14:0] delayed; 
 //initial DSPout=0;
 reg signed [37:0] DSPout;
 //reg DSPoflow=1'b0;
@@ -51,50 +53,69 @@ always @ (posedge clk) begin
 chargeA <= charge_in;
 DSPtemp <= chargeA*signal_in;
 //DSPtemp2=DSPtemp[24:12];   // Doesnt help timing!!!
-DSPout <= DSPtemp+{delayed, 12'b0}; // Remove 4096 factor added for LUT // delayed 25 bits, 
+//DSPout <= DSPtemp+{delayed, 12'b0}; // Remove 4096 factor added for LUT // delayed 25 bits, 
+DSPout <= DSPtemp; // Remove 4096 factor added for LUT // delayed 25 bits, 
 pout<=DSPout[26:12];
 DSPoflow<=(~&DSPout[37:26] && ~&(~DSPout[37:26]));
 end
 
+
+always @ (posedge clk) begin
+if (~store_strb) k<=0;
+else if (bunch_strb) k<=1;
+else if (dac_clk) k<=0;
+end
+
+always @ (posedge clk) begin
+if (k==1) j<=j+1;
+else j<=1;
+end
+
+
 //reg signed [10:0] banana_fract;
 // ***** Clk Counter after strobe *****
 // No. of samples after bunch strb
-always @ (posedge clk) begin
-if (~store_strb) begin
-j<=8;       
- end
-else if (bunch_strb) begin j<=0;
-//banana_fract<=banana_corr[12:2];    /// Bring in as 13 bit and pad with zeros to 25 bits
-end
-else if (~bunch_strb) begin
-j<=j+1;
-end
-//else j<=10;
-end
-
+//always @ (posedge clk) begin
+//if (~store_strb) begin
+//j<=22;       
+// end
+//else if (bunch_strb) begin j<=0;
+////banana_fract<=banana_corr[12:2];    /// Bring in as 13 bit and pad with zeros to 25 bits
+//end
+//else if (~bunch_strb) begin
+//j<=j+1;
+//end
+////else j<=10;
+//end
+//
+//always @ (posedge clk) begin
+//k<=j+no_samples+1;
+//end
 //reg [47:0] banana_corr_48=0;
 
 
 // If more than two bunches multiplex to add banana correction
 //k1_b2_offset
 
-reg [14:0] delayed_a;
-always @ (posedge clk) begin
-delayed<=delayed_a; // add banana here
-if (~store_strb) begin
-delayed_a<=0;
-end
-else if (delay_en==1) begin
-if (j==6) delayed_a<=pout;
-end
-end
+//reg [14:0] delayed_a;
+//always @ (posedge clk) begin
+//delayed<=delayed_a; // add banana here
+//if (~store_strb) begin
+//delayed_a<=0;
+//end
+//else if (delay_en==1) begin
+//if (j==6) delayed_a<=pout;
+//end
+//end
 
 //reg fb_cond2;
 
 
+
+
 always @ (posedge clk) begin
 if (fb_en) begin
-if (j==2||j==3) fb_cond<=1;
+if (j==17||j==18) fb_cond<=1;
 else fb_cond<=0;
 end
 else fb_cond<=0;
@@ -108,7 +129,7 @@ reg delay_clr_dac;
 
 always @ (posedge clk) begin
 if (fb_en) begin
-if (j==6||j==7||clr_dac==1||delay_clr_dac==1) dac_clk<=1;
+if (j==20||j==21||clr_dac==1||delay_clr_dac==1) dac_clk<=1;
 else dac_clk<=0;
 end
 else dac_clk<=0;

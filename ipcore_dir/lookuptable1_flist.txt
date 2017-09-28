@@ -4,6 +4,7 @@ lookuptable1.asy
 lookuptable1.gise
 lookuptable1.mif
 lookuptable1.ngc
+lookuptable1.sym
 lookuptable1.v
 lookuptable1.veo
 lookuptable1.xco

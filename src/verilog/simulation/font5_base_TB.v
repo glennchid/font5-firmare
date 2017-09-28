@@ -30,6 +30,8 @@ parameter CH1_BITFLIP = (13'b1011010000101 ^ -13'sd4096);
 parameter CH2_BITFLIP = (13'b0101110001000 ^ -13'sd4096);
 parameter CH4_BITFLIP = (13'b0111100000000 ^ -13'sd4096);
 parameter CH5_BITFLIP = (13'b0100110011010 ^ -13'sd4096);
+parameter CH7_BITFLIP = (13'b0111100000000 ^ -13'sd4096);
+parameter CH8_BITFLIP = (13'b0100110011010 ^ -13'sd4096);
 
 //assign ch3_bitflip = 13'b0001011110100;
 
@@ -116,8 +118,8 @@ parameter CH5_BITFLIP = (13'b0100110011010 ^ -13'sd4096);
 		.ch4_data_in_del(ch4_data_in_del ^ CH4_BITFLIP), 
 		.ch5_data_in_del(ch5_data_in_del ^ CH5_BITFLIP), 
 		.ch6_data_in_del(ch6_data_in_del), 
-		.ch7_data_in_del(ch7_data_in_del), 
-		.ch8_data_in_del(ch8_data_in_del), 
+		.ch7_data_in_del(ch7_data_in_del ^ CH7_BITFLIP), 
+		.ch8_data_in_del(ch8_data_in_del ^ CH8_BITFLIP), 
 		.ch9_data_in_del(ch9_data_in_del), 
 		.rs232_in(rs232_in), 
 		.adc_powerdown(adc_powerdown), 
@@ -199,9 +201,9 @@ parameter CH5_BITFLIP = (13'b0100110011010 ^ -13'sd4096);
 		ch4_data_in_del = 13'sd0;
 		ch5_data_in_del = 13'sd0;
 		ch6_data_in_del = 0;
-		ch7_data_in_del = 13'sd100;
-		ch8_data_in_del = 13'sd500;
-		ch9_data_in_del = 0;
+		ch7_data_in_del = 13'sd00;
+		ch8_data_in_del = 13'sd00;
+		ch9_data_in_del = 13'sd2066;
 		rs232_in = 0;
 		diginput1 = 0;
 		diginput2 = 0;
@@ -224,15 +226,17 @@ parameter CH5_BITFLIP = (13'b0100110011010 ^ -13'sd4096);
 		#28;
 		//ch1_data_in_del = 13'sd1000; 
 		//ch2_data_in_del = -13'sd4000;
-		ch2_data_in_del = 13'sd2048; 
-		ch1_data_in_del = -13'sd256;
-		ch4_data_in_del = 13'sd500;
+		ch2_data_in_del = 13'sd1; 
+		ch1_data_in_del = -13'sd2;
+		ch4_data_in_del = 13'sd3;
 		ch5_data_in_del = 13'sd0;
+		ch7_data_in_del = 13'sd3;
+		ch8_data_in_del = 13'sd0;
 		
-		#280; ch2_data_in_del = 13'sd1024;
-		#280; ch2_data_in_del = 13'sd512;
-		#280; ch2_data_in_del = -13'sd512;
-		#280; ch2_data_in_del = 13'sd0;
+		#280; ch2_data_in_del = 13'sd4;
+		#280; ch2_data_in_del = 13'sd5;
+		#280; ch2_data_in_del = -13'sd1;
+		#280; ch2_data_in_del = 13'sd1;
 
 		
 		//ch1_data_in_del = 13'sd1250; 

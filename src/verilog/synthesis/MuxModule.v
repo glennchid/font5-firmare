@@ -32,7 +32,8 @@ module MuxModule(
 	output reg signed [16:0] bpm2_q_reg_int_a, 
 	output reg signed [16:0] bpm2_i_reg_int_a,
 	input clk,
-	input dac_cond
+	input dac_cond,
+	input store_strb
   
     );
 
@@ -68,7 +69,7 @@ bpm2_i_reg_int<=bpm2_i+bpm2_i_reg_int;
 bpm2_q_reg_int<=bpm2_q+bpm2_q_reg_int;
 //q_signal_int<=q_signal+q_signal_int;
 end
-else if (dac_cond) begin
+else if (dac_cond|~store_strb) begin
 bpm1_i_reg_int<=0;
 bpm1_q_reg_int<=0;
 bpm2_i_reg_int<=0;

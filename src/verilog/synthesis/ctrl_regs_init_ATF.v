@@ -30,9 +30,9 @@ initial begin
 		ctrl_regs[83] = 7'b0010100; //b2_strobe dipole samples
 		ctrl_regs[85]=7'b00000000; // Bit [2] is delay enable, bit [4] is const dac en
 		
-		ctrl_regs[90]=7'b0000100;
+		ctrl_regs[90]=7'b0000000;
 		ctrl_regs[118]=7'b1100100;
-		ctrl_regs[124]=7'b0100001;
+		ctrl_regs[124]=7'b0101000;    // [3:0] No_samples
 		
 		
 		ctrl_regs[111]=3'd7;				// Trigger threshold code
